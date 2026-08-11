@@ -5,6 +5,8 @@ Consola de salida para el IDE C++.
 import tkinter as tk
 from tkinter import ttk
 
+from .theme import ThemeManager
+
 
 class ConsolePanel(ttk.Frame):
     """Panel de consola con pestañas para salida, errores y depuración."""
@@ -18,9 +20,32 @@ class ConsolePanel(ttk.Frame):
         "warning": "#cca700",
     }
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent, theme_manager=None, **kwargs):
         super().__init__(parent, **kwargs)
+        self.theme_manager = theme_manager or ThemeManager()
         self._build_ui()
+
+    def apply_theme(self):
+        """Reaplica los colores del tema."""
+        colors = self.theme_manager.get_colors()
+        self.COLORS["background"] = colors["bg"]
+        self.COLORS["foreground"] = colors["fg"]
+        self.COLORS["error"] = colors["error"]
+        self.COLORS["success"] = colors["success"]
+        self.COLORS["info"] = colors["info"]
+        self.COLORS["warning"] = colors["warning"]
+
+        for text in (self.output_text, self.error_text, self.debug_text):
+            text.configure(
+                bg=self.COLORS["background"],
+                fg=self.COLORS["foreground"],
+                insertbackground=self.COLORS["foreground"],
+            )
+            text.tag_configure("error", foreground=self.COLORS["error"])
+            text.tag_configure("success", foreground=self.COLORS["success"])
+            text.tag_configure("info", foreground=self.COLORS["info"])
+            text.tag_configure("warning", foreground=self.COLORS["warning"])
+            text.tag_configure("normal", foreground=self.COLORS["foreground"])
 
     def _build_ui(self):
         """Construye la interfaz de la consola."""

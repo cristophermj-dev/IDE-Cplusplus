@@ -15,6 +15,8 @@ from .editor import LineNumbers
 from .console import ConsolePanel
 from .search_dialog import SearchDialog
 from .compiler import Compiler
+from .theme import ThemeManager
+from .project import ProjectManager
 
 
 class CodeEditor(tk.Frame):
@@ -26,7 +28,8 @@ class CodeEditor(tk.Frame):
         self.file_path = None
         self._modified = False
 
-        self.configure(bg=SyntaxHighlighter.COLORS["background"])
+        colors = ide.theme_manager.get_colors()
+        self.configure(bg=colors["bg"])
 
         # Fuentes
         self.editor_font = tkfont.Font(family="Consolas", size=11)
@@ -35,11 +38,11 @@ class CodeEditor(tk.Frame):
         # Widget de texto
         self.text = tk.Text(
             self,
-            bg=SyntaxHighlighter.COLORS["background"],
-            fg=SyntaxHighlighter.COLORS["foreground"],
-            insertbackground=SyntaxHighlighter.COLORS["foreground"],
-            selectbackground=SyntaxHighlighter.COLORS["selection"],
-            selectforeground=SyntaxHighlighter.COLORS["foreground"],
+            bg=colors["bg"],
+            fg=colors["fg"],
+            insertbackground=colors["fg"],
+            selectbackground=colors["selection"],
+            selectforeground=colors["fg"],
             font=self.editor_font,
             wrap="none",
             undo=True,
@@ -53,7 +56,7 @@ class CodeEditor(tk.Frame):
         )
 
         # Números de línea
-        self.line_numbers = LineNumbers(self, self.text)
+        self.line_numbers = LineNumbers(self, self.text, ide.theme_manager)
         self.line_numbers.pack(side="left", fill="y")
 
         # Scrollbars
@@ -66,14 +69,30 @@ class CodeEditor(tk.Frame):
         self.text.pack(side="left", fill="both", expand=True)
 
         # Resaltador de sintaxis
-        self.highlighter = SyntaxHighlighter(self.text)
+        self.highlighter = SyntaxHighlighter(self.text, ide.theme_manager)
         self.line_numbers.attach()
 
         # Bindings del editor
         self._setup_bindings()
 
         # Línea actual resaltada
-        self.text.tag_configure("current_line", background="#2a2d2e")
+        self.text.tag_configure("current_line", background=colors["current_line"])
+        self._highlight_current_line()
+
+    def apply_theme(self):
+        """Reaplica el tema al editor."""
+        colors = self.ide.theme_manager.get_colors()
+        self.configure(bg=colors["bg"])
+        self.text.configure(
+            bg=colors["bg"],
+            fg=colors["fg"],
+            insertbackground=colors["fg"],
+            selectbackground=colors["selection"],
+            selectforeground=colors["fg"],
+        )
+        self.text.tag_configure("current_line", background=colors["current_line"])
+        self.line_numbers.apply_theme()
+        self.highlighter.apply_theme()
         self._highlight_current_line()
 
     def _setup_bindings(self):
@@ -126,6 +145,7 @@ class CodeEditor(tk.Frame):
             self._modified = True
             self.ide.update_title()
             self.ide.update_status("Archivo modificado")
+            self.ide.file_explorer.refresh_open_files()
         self.text.edit_modified(False)
 
     def _highlight_current_line(self):
@@ -262,26 +282,28 @@ class CodeEditor(tk.Frame):
 
 
 class FileExplorer(tk.Frame):
-    """Explorador de archivos lateral."""
+    """Explorador de archivos lateral con archivos abiertos y proyecto."""
 
     def __init__(self, parent, ide, **kwargs):
         super().__init__(parent, **kwargs)
         self.ide = ide
         self._current_dir = None
 
-        style = ttk.Style()
-        style.configure("Explorer.Treeview",
-                        background="#252526",
-                        foreground="#d4d4d4",
-                        fieldbackground="#252526",
-                        borderwidth=0)
-        style.configure("Explorer.Treeview.Item",
-                        padding=(2, 2))
-
         self._build_ui()
 
     def _build_ui(self):
         """Construye la interfaz del explorador."""
+        colors = self.ide.theme_manager.get_colors()
+
+        style = ttk.Style()
+        style.configure("Explorer.Treeview",
+                        background=colors["tree_bg"],
+                        foreground=colors["tree_fg"],
+                        fieldbackground=colors["tree_field_bg"],
+                        borderwidth=0)
+        style.configure("Explorer.Treeview.Item",
+                        padding=(2, 2))
+
         # Barra superior
         header = ttk.Frame(self)
         header.pack(fill="x", padx=3, pady=3)
@@ -295,6 +317,50 @@ class FileExplorer(tk.Frame):
                    command=self.go_up).pack(side="left", padx=1)
         ttk.Button(btn_frame, text="🔄", width=3,
                    command=self.refresh).pack(side="left", padx=1)
+
+        # --- Sección de proyecto ---
+        self.project_frame = ttk.Frame(self)
+        self.project_frame.pack(fill="x", padx=3, pady=(5, 0))
+
+        self.project_label = ttk.Label(self.project_frame,
+                                       text="📦 Sin proyecto",
+                                       font=("Arial", 9, "bold"))
+        self.project_label.pack(side="left", padx=2)
+
+        self.close_project_btn = ttk.Button(self.project_frame, text="✖ Cerrar",
+                                            width=7,
+                                            command=self.ide.close_project,
+                                            state="disabled")
+        self.close_project_btn.pack(side="right", padx=2)
+
+        # --- Sección de archivos abiertos ---
+        open_files_header = ttk.Frame(self)
+        open_files_header.pack(fill="x", padx=3, pady=(8, 0))
+        ttk.Label(open_files_header, text="📂 ARCHIVOS ABIERTOS",
+                  font=("Arial", 9, "bold")).pack(side="left")
+
+        # Lista de archivos abiertos
+        self.open_files_frame = ttk.Frame(self)
+        self.open_files_frame.pack(fill="x", padx=3, pady=(2, 0))
+
+        self.open_files_list = tk.Listbox(
+            self.open_files_frame,
+            height=5,
+            bg=colors["open_files_bg"],
+            fg=colors["open_files_fg"],
+            selectbackground=colors["accent"],
+            selectforeground="#ffffff",
+            relief="flat",
+            borderwidth=0,
+            font=("Consolas", 9),
+            activestyle="none",
+        )
+        self.open_files_list.pack(fill="x", side="left", expand=True)
+        self.open_files_list.bind("<Double-1>", self._on_open_file_click)
+        self.open_files_list.bind("<Button-3>", self._on_open_file_right_click)
+
+        # --- Separador ---
+        ttk.Separator(self, orient="horizontal").pack(fill="x", padx=3, pady=5)
 
         # Árbol de archivos
         self.tree_frame = ttk.Frame(self)
@@ -316,6 +382,82 @@ class FileExplorer(tk.Frame):
         # Bindings
         self.tree.bind("<Double-1>", self._on_double_click)
         self.tree.bind("<Return>", self._on_double_click)
+
+    def apply_theme(self):
+        """Reaplica el tema al explorador."""
+        colors = self.ide.theme_manager.get_colors()
+        style = ttk.Style()
+        style.configure("Explorer.Treeview",
+                        background=colors["tree_bg"],
+                        foreground=colors["tree_fg"],
+                        fieldbackground=colors["tree_field_bg"],
+                        borderwidth=0)
+        self.open_files_list.configure(
+            bg=colors["open_files_bg"],
+            fg=colors["open_files_fg"],
+            selectbackground=colors["accent"],
+        )
+
+    def refresh_open_files(self):
+        """Actualiza la lista de archivos abiertos."""
+        self.open_files_list.delete(0, "end")
+        for file_id, editor in self.ide.open_files.items():
+            if editor.file_path:
+                name = os.path.basename(editor.file_path)
+                if editor.is_modified():
+                    name = "• " + name
+                self.open_files_list.insert("end", name)
+            else:
+                tab_text = self.ide.notebook.tab(editor, "text")
+                self.open_files_list.insert("end", tab_text)
+
+    def _on_open_file_click(self, event=None):
+        """Abre el archivo seleccionado en la lista de archivos abiertos."""
+        selection = self.open_files_list.curselection()
+        if not selection:
+            return
+        index = selection[0]
+        editors = list(self.ide.open_files.values())
+        if index < len(editors):
+            editor = editors[index]
+            self.ide.notebook.select(editor)
+            self.ide.current_editor = editor
+            self.ide.update_title()
+            self.ide.update_cursor_position()
+
+    def _on_open_file_right_click(self, event=None):
+        """Muestra menú contextual para archivos abiertos."""
+        selection = self.open_files_list.curselection()
+        if not selection:
+            return
+        index = selection[0]
+        editors = list(self.ide.open_files.values())
+        if index >= len(editors):
+            return
+
+        editor = editors[index]
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label="Cerrar archivo",
+                         command=lambda: self.ide.close_editor(editor))
+        menu.add_command(label="Guardar",
+                         command=lambda: self.ide.save_editor(editor))
+        menu.add_separator()
+        menu.add_command(label="Cerrar todos",
+                         command=self.ide.close_all_tabs)
+        try:
+            menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            menu.grab_release()
+
+    def update_project_display(self):
+        """Actualiza la visualización del proyecto."""
+        if self.ide.project_manager.has_project():
+            project = self.ide.project_manager.current_project
+            self.project_label.config(text=f"📦 {project.name}")
+            self.close_project_btn.config(state="normal")
+        else:
+            self.project_label.config(text="📦 Sin proyecto")
+            self.close_project_btn.config(state="disabled")
 
     def open_directory(self, path=None):
         """Abre un directorio en el explorador."""
@@ -370,6 +512,7 @@ class FileExplorer(tk.Frame):
         icons = {
             ".cpp": "📄", ".cc": "📄", ".cxx": "📄", ".c": "📄",
             ".h": "📋", ".hpp": "📋", ".hh": "📋",
+            ".cmj": "📦",
             ".txt": "📝", ".md": "📝", ".py": "🐍",
             ".json": "📊", ".xml": "📊", ".yaml": "📊", ".yml": "📊",
             ".sh": "⚙", ".bash": "⚙",
@@ -414,6 +557,12 @@ class MainWindow(tk.Tk):
         self.geometry("1200x750")
         self.minsize(800, 500)
 
+        # Gestor de temas
+        self.theme_manager = ThemeManager()
+
+        # Gestor de proyectos
+        self.project_manager = ProjectManager()
+
         # Configurar estilo
         self._setup_styles()
 
@@ -451,50 +600,76 @@ class MainWindow(tk.Tk):
         style = ttk.Style()
         style.theme_use("clam")
 
-        # Colores del tema oscuro
-        bg = "#1e1e1e"
-        bg_light = "#252526"
-        fg = "#d4d4d4"
-        accent = "#0e639c"
-        accent_hover = "#1177bb"
-        border = "#3c3c3c"
+        colors = self.theme_manager.get_colors()
 
         # Configurar colores base
-        self.configure(bg=bg)
+        self.configure(bg=colors["bg"])
 
-        style.configure(".", background=bg, foreground=fg)
-        style.configure("TFrame", background=bg)
-        style.configure("TLabel", background=bg, foreground=fg)
-        style.configure("TButton", background=bg_light, foreground=fg,
+        style.configure(".", background=colors["bg"], foreground=colors["fg"])
+        style.configure("TFrame", background=colors["bg"])
+        style.configure("TLabel", background=colors["bg"], foreground=colors["fg"])
+        style.configure("TButton", background=colors["button_bg"], foreground=colors["button_fg"],
                         borderwidth=1, padding=(8, 4),
                         relief="flat", focusthickness=0)
         style.map("TButton",
-                  background=[("active", accent), ("pressed", accent_hover)])
-        style.configure("TNotebook", background=bg, borderwidth=0)
-        style.configure("TNotebook.Tab", background=bg_light, foreground=fg,
+                  background=[("active", colors["button_active_bg"]),
+                              ("pressed", colors["button_pressed_bg"])],
+                  foreground=[("active", "#ffffff")])
+        style.configure("TNotebook", background=colors["bg"], borderwidth=0)
+        style.configure("TNotebook.Tab", background=colors["notebook_tab_bg"],
+                        foreground=colors["notebook_tab_fg"],
                         padding=(12, 6), borderwidth=1)
         style.map("TNotebook.Tab",
-                  background=[("selected", accent)],
-                  foreground=[("selected", "#ffffff")])
-        style.configure("TEntry", fieldbackground=bg_light, foreground=fg,
-                        insertcolor=fg, borderwidth=1)
-        style.configure("TCombobox", fieldbackground=bg_light, foreground=fg)
-        style.configure("TCheckbutton", background=bg, foreground=fg)
+                  background=[("selected", colors["tab_selected"])],
+                  foreground=[("selected", colors["tab_selected_fg"])])
+        style.configure("TEntry", fieldbackground=colors["entry_bg"],
+                        foreground=colors["entry_fg"],
+                        insertcolor=colors["entry_fg"], borderwidth=1)
+        style.configure("TCombobox", fieldbackground=colors["combobox_bg"],
+                        foreground=colors["combobox_fg"])
+        style.configure("TCheckbutton", background=colors["checkbutton_bg"],
+                        foreground=colors["checkbutton_fg"])
         style.map("TCheckbutton",
-                  background=[("active", bg)])
-        style.configure("TScrollbar", background=bg_light, troughcolor=bg,
-                        borderwidth=0, arrowcolor=fg)
-        style.configure("Toolbar.TFrame", background="#333333")
-        style.configure("Statusbar.TFrame", background="#007acc")
-        style.configure("Statusbar.TLabel", background="#007acc", foreground="#ffffff")
-        style.configure("Panel.TFrame", background=bg_light)
-        style.configure("Menu", background=bg_light, foreground=fg)
+                  background=[("active", colors["checkbutton_bg"])])
+        style.configure("TScrollbar", background=colors["scrollbar_bg"],
+                        troughcolor=colors["scrollbar_trough"],
+                        borderwidth=0, arrowcolor=colors["scrollbar_arrow"])
+        style.configure("Toolbar.TFrame", background=colors["toolbar_bg"])
+        style.configure("Statusbar.TFrame", background=colors["statusbar_bg"])
+        style.configure("Statusbar.TLabel", background=colors["statusbar_bg"],
+                        foreground=colors["statusbar_fg"])
+        style.configure("Panel.TFrame", background=colors["panel_bg"])
+        style.configure("Menu", background=colors["menu_bg"], foreground=colors["menu_fg"])
 
         # Menú
-        self.option_add("*Menu.background", bg_light)
-        self.option_add("*Menu.foreground", fg)
-        self.option_add("*Menu.activeBackground", accent)
-        self.option_add("*Menu.activeForeground", "#ffffff")
+        self.option_add("*Menu.background", colors["menu_bg"])
+        self.option_add("*Menu.foreground", colors["menu_fg"])
+        self.option_add("*Menu.activeBackground", colors["menu_active_bg"])
+        self.option_add("*Menu.activeForeground", colors["menu_active_fg"])
+
+    def apply_theme(self):
+        """Aplica el tema actual a toda la interfaz."""
+        self._setup_styles()
+
+        # Aplicar a editores abiertos
+        for editor in self.open_files.values():
+            editor.apply_theme()
+
+        # Aplicar al explorador
+        self.file_explorer.apply_theme()
+
+        # Aplicar a la consola
+        self.console.apply_theme()
+
+        # Actualizar título
+        self.update_title()
+
+    def toggle_theme(self):
+        """Alterna entre tema claro y oscuro."""
+        self.theme_manager.toggle()
+        self.apply_theme()
+        theme_name = self.theme_manager.get_colors()["name"]
+        self.update_status(f"Tema: {theme_name}")
 
     def _build_ui(self):
         """Construye la interfaz principal."""
@@ -518,7 +693,7 @@ class MainWindow(tk.Tk):
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
         # Panel de consola (abajo)
-        self.console = ConsolePanel(editor_container)
+        self.console = ConsolePanel(editor_container, self.theme_manager)
         self.console.pack(fill="both", side="bottom", pady=(2, 0))
 
         self._toggle_console_var = tk.BooleanVar(value=True)
@@ -555,6 +730,22 @@ class MainWindow(tk.Tk):
                               command=self._on_close)
         menubar.add_cascade(label="Archivo", menu=file_menu)
 
+        # Menú Proyecto
+        project_menu = tk.Menu(menubar, tearoff=False)
+        project_menu.add_command(label="Nuevo proyecto...",
+                                 command=self.new_project)
+        project_menu.add_command(label="Abrir proyecto...",
+                                 command=self.open_project)
+        project_menu.add_separator()
+        project_menu.add_command(label="Guardar proyecto",
+                                 command=self.save_project)
+        project_menu.add_command(label="Cerrar proyecto",
+                                 command=self.close_project)
+        project_menu.add_separator()
+        project_menu.add_command(label="Nueva clase (.h y .cpp)...",
+                                 command=self.new_class)
+        menubar.add_cascade(label="Proyecto", menu=project_menu)
+
         # Menú Editar
         edit_menu = tk.Menu(menubar, tearoff=False)
         edit_menu.add_command(label="Deshacer", accelerator="Ctrl+Z",
@@ -586,6 +777,11 @@ class MainWindow(tk.Tk):
                                   command=self.toggle_explorer)
         view_menu.add_checkbutton(label="Consola", variable=self._toggle_console_var,
                                   command=self._toggle_console)
+        view_menu.add_separator()
+        view_menu.add_command(label="Tema claro", command=lambda: self.set_theme("light"))
+        view_menu.add_command(label="Tema oscuro", command=lambda: self.set_theme("dark"))
+        view_menu.add_command(label="Alternar tema", accelerator="Ctrl+T",
+                              command=self.toggle_theme)
         view_menu.add_separator()
         view_menu.add_command(label="Acercar", accelerator="Ctrl++",
                               command=lambda: self.change_font_size(1))
@@ -649,6 +845,14 @@ class MainWindow(tk.Tk):
 
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
 
+        # Botones de proyecto
+        ttk.Button(toolbar, text="📦 Proyecto", width=10,
+                   command=self.new_project).pack(side="left", padx=2, pady=3)
+        ttk.Button(toolbar, text="➕ Clase", width=8,
+                   command=self.new_class).pack(side="left", padx=2, pady=3)
+
+        ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
+
         # Botones de compilación/ejecución
         ttk.Button(toolbar, text="🛠 Compilar", width=10,
                    command=self.compile_program).pack(side="left", padx=2, pady=3)
@@ -668,6 +872,11 @@ class MainWindow(tk.Tk):
                                  values=["c++11", "c++14", "c++17", "c++20"],
                                  width=8, state="readonly")
         std_combo.pack(side="left", padx=2)
+
+        # Botón tema
+        ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
+        ttk.Button(toolbar, text="🌓 Tema", width=7,
+                   command=self.toggle_theme).pack(side="left", padx=2, pady=3)
 
         # Botón buscar
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
@@ -709,6 +918,171 @@ class MainWindow(tk.Tk):
         self.bind("<Shift-F5>", lambda e: self.stop_program())
         self.bind("<F6>", lambda e: self.compile_and_run())
         self.bind("<Control-Shift-S>", lambda e: self.save_file_as())
+        self.bind("<Control-t>", lambda e: self.toggle_theme())
+        self.bind("<Control-T>", lambda e: self.toggle_theme())
+
+    # --- Gestión de temas ---
+
+    def set_theme(self, theme_name):
+        """Establece un tema específico."""
+        if self.theme_manager.set_theme(theme_name):
+            self.apply_theme()
+            theme_name_display = self.theme_manager.get_colors()["name"]
+            self.update_status(f"Tema: {theme_name_display}")
+
+    # --- Gestión de proyectos ---
+
+    def new_project(self):
+        """Crea un nuevo proyecto .cmj."""
+        import tkinter.simpledialog as simpledialog
+
+        name = simpledialog.askstring(
+            "Nuevo proyecto",
+            "Nombre del proyecto:",
+            parent=self,
+        )
+        if not name:
+            return
+
+        # Validar nombre
+        name = name.strip()
+        if not name:
+            messagebox.showwarning("Advertencia", "El nombre del proyecto no puede estar vacío.")
+            return
+
+        directory = filedialog.askdirectory(
+            parent=self,
+            title="Seleccione la carpeta donde crear el proyecto",
+        )
+        if not directory:
+            return
+
+        try:
+            project = self.project_manager.create_project(name, directory)
+            self.file_explorer.open_directory(project.path)
+            self.file_explorer.update_project_display()
+            self.update_status(f"Proyecto creado: {project.name}")
+
+            # Abrir main.cpp
+            main_cpp = os.path.join(project.path, "main.cpp")
+            if os.path.exists(main_cpp):
+                self.open_file_path(main_cpp)
+
+            self.console.success(f"✓ Proyecto '{project.name}' creado en {project.path}\n")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo crear el proyecto:\n{e}")
+
+    def open_project(self):
+        """Abre un proyecto .cmj existente."""
+        file_path = filedialog.askopenfilename(
+            parent=self,
+            title="Abrir proyecto",
+            filetypes=[
+                ("Proyectos C++", "*.cmj"),
+                ("Todos los archivos", "*.*"),
+            ],
+        )
+        if not file_path:
+            return
+
+        try:
+            project = self.project_manager.open_project(file_path)
+            self.file_explorer.open_directory(project.path)
+            self.file_explorer.update_project_display()
+            self.update_status(f"Proyecto abierto: {project.name}")
+
+            # Abrir main.cpp si existe
+            main_cpp = os.path.join(project.path, "main.cpp")
+            if os.path.exists(main_cpp):
+                self.open_file_path(main_cpp)
+
+            self.console.success(f"✓ Proyecto '{project.name}' abierto\n")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo abrir el proyecto:\n{e}")
+
+    def save_project(self):
+        """Guarda el proyecto actual."""
+        if not self.project_manager.has_project():
+            messagebox.showinfo("Sin proyecto", "No hay un proyecto abierto.")
+            return
+
+        try:
+            file_path = self.project_manager.save_project()
+            self.update_status(f"Proyecto guardado: {file_path}")
+            self.console.success(f"✓ Proyecto guardado: {file_path}\n")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo guardar el proyecto:\n{e}")
+
+    def close_project(self):
+        """Cierra el proyecto actual."""
+        if not self.project_manager.has_project():
+            return
+
+        # Verificar archivos sin guardar
+        unsaved = [ed for ed in self.open_files.values() if ed.is_modified()]
+        if unsaved:
+            result = messagebox.askyesnocancel(
+                "Cerrar proyecto",
+                f"Hay {len(unsaved)} archivos sin guardar. ¿Desea guardarlos antes de cerrar el proyecto?",
+            )
+            if result is None:
+                return
+            if result:
+                for ed in unsaved:
+                    self.current_editor = ed
+                    self.save_file()
+
+        project_name = self.project_manager.current_project.name
+        self.project_manager.close_project()
+        self.file_explorer.update_project_display()
+        self.file_explorer._current_dir = None
+        self.file_explorer.tree.delete(*self.file_explorer.tree.get_children())
+        self.update_status(f"Proyecto cerrado: {project_name}")
+        self.console.info(f"Proyecto '{project_name}' cerrado.\n")
+
+    def new_class(self):
+        """Crea una nueva clase con archivos .h y .cpp."""
+        if not self.project_manager.has_project():
+            messagebox.showinfo(
+                "Sin proyecto",
+                "Primero debe crear o abrir un proyecto para agregar clases.",
+            )
+            return
+
+        import tkinter.simpledialog as simpledialog
+
+        class_name = simpledialog.askstring(
+            "Nueva clase",
+            "Nombre de la clase:",
+            parent=self,
+        )
+        if not class_name:
+            return
+
+        class_name = class_name.strip()
+        if not class_name:
+            messagebox.showwarning("Advertencia", "El nombre de la clase no puede estar vacío.")
+            return
+
+        # Validar nombre de clase (solo letras, números y guiones bajos)
+        if not class_name.replace("_", "").isalnum() or class_name[0].isdigit():
+            messagebox.showwarning(
+                "Advertencia",
+                "El nombre de la clase debe ser un identificador válido de C++.",
+            )
+            return
+
+        try:
+            result = self.project_manager.add_class(class_name)
+            if result:
+                header_path, source_path = result
+                self.file_explorer.refresh()
+                self.open_file_path(header_path)
+                self.open_file_path(source_path)
+                self.update_status(f"Clase '{class_name}' creada")
+                self.console.success(f"✓ Clase '{class_name}' creada:\n  {header_path}\n  {source_path}\n")
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo crear la clase:\n{e}")
 
     # --- Gestión de archivos ---
 
@@ -730,6 +1104,7 @@ class MainWindow(tk.Tk):
 
         self.update_title()
         self.update_cursor_position()
+        self.file_explorer.refresh_open_files()
         return editor
 
     def open_file(self):
@@ -741,11 +1116,17 @@ class MainWindow(tk.Tk):
                 ("Archivos C++", "*.cpp *.cc *.cxx *.hpp *.h *.cxx"),
                 ("Archivos C", "*.c"),
                 ("Archivos de cabecera", "*.h *.hpp"),
+                ("Proyectos", "*.cmj"),
                 ("Todos los archivos", "*.*"),
             ],
         )
         if file_path:
-            self.open_file_path(file_path)
+            if file_path.endswith(".cmj"):
+                self.project_manager.open_project(file_path)
+                self.file_explorer.open_directory(os.path.dirname(file_path))
+                self.file_explorer.update_project_display()
+            else:
+                self.open_file_path(file_path)
 
     def open_file_path(self, file_path):
         """Abre un archivo existente."""
@@ -776,6 +1157,7 @@ class MainWindow(tk.Tk):
         self.notebook.tab(editor, text=os.path.basename(file_path))
         self.update_title()
         self.update_status(f"Abierto: {file_path}")
+        self.file_explorer.refresh_open_files()
 
     def save_file(self):
         """Guarda el archivo actual."""
@@ -786,6 +1168,16 @@ class MainWindow(tk.Tk):
             self._save_to_path(self.current_editor.file_path)
         else:
             self.save_file_as()
+
+    def save_editor(self, editor):
+        """Guarda un editor específico."""
+        if not editor:
+            return
+
+        old_editor = self.current_editor
+        self.current_editor = editor
+        self.save_file()
+        self.current_editor = old_editor
 
     def save_file_as(self):
         """Guarda el archivo actual con un nombre nuevo."""
@@ -798,6 +1190,7 @@ class MainWindow(tk.Tk):
             defaultextension=".cpp",
             filetypes=[
                 ("Archivos C++", "*.cpp"),
+                ("Archivos de cabecera", "*.h"),
                 ("Todos los archivos", "*.*"),
             ],
         )
@@ -806,6 +1199,7 @@ class MainWindow(tk.Tk):
             self._save_to_path(self.current_editor.file_path)
             self.notebook.tab(self.current_editor, text=os.path.basename(file_path))
             self.update_title()
+            self.file_explorer.refresh_open_files()
 
     def _save_to_path(self, file_path):
         """Guarda el contenido del editor en una ruta."""
@@ -814,15 +1208,15 @@ class MainWindow(tk.Tk):
                 f.write(self.current_editor.get_content())
             self.current_editor.set_modified(False)
             self.update_status(f"Guardado: {file_path}")
+            self.file_explorer.refresh_open_files()
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar el archivo:\n{e}")
 
-    def close_current_tab(self):
-        """Cierra la pestaña actual."""
-        if not self.current_editor:
+    def close_editor(self, editor):
+        """Cierra un editor específico."""
+        if not editor:
             return
 
-        editor = self.current_editor
         if editor.is_modified():
             result = messagebox.askyesnocancel(
                 "Archivo sin guardar",
@@ -831,11 +1225,13 @@ class MainWindow(tk.Tk):
             if result is None:
                 return
             if result:
+                old_editor = self.current_editor
+                self.current_editor = editor
                 self.save_file()
-                if editor.is_modified():  # El usuario canceló el guardado
+                self.current_editor = old_editor
+                if editor.is_modified():
                     return
 
-        # Limpiar archivo temporal si existe
         self.notebook.forget(editor)
         editor.destroy()
 
@@ -857,10 +1253,17 @@ class MainWindow(tk.Tk):
                     break
         else:
             self.current_editor = None
-            self.new_file()  # Crear archivo vacío
+            self.new_file()
 
         self.update_title()
         self.update_cursor_position()
+        self.file_explorer.refresh_open_files()
+
+    def close_current_tab(self):
+        """Cierra la pestaña actual."""
+        if not self.current_editor:
+            return
+        self.close_editor(self.current_editor)
 
     def close_all_tabs(self):
         """Cierra todas las pestañas."""
@@ -877,6 +1280,7 @@ class MainWindow(tk.Tk):
                     break
             self.update_title()
             self.update_cursor_position()
+            self.file_explorer.refresh_open_files()
         except tk.TclError:
             pass
 
@@ -1006,13 +1410,6 @@ class MainWindow(tk.Tk):
 
         def on_output(line, tag):
             self.console.output(line)
-
-        def handle_compile(code):
-            if code == 0:
-                self.build_status_label.config(text="Ejecutando...")
-            else:
-                self.build_status_label.config(text="")
-                self.console.show_error_tab()
 
         self.compiler.compile_source(
             source_file,
@@ -1229,9 +1626,11 @@ class MainWindow(tk.Tk):
     def update_title(self):
         """Actualiza el título de la ventana."""
         title = "IDE C++"
+        if self.project_manager.has_project():
+            title = f"{self.project_manager.current_project.name} - {title}"
         if self.current_editor:
             tab_title = self.notebook.tab(self.current_editor, "text")
-            title = f"{tab_title} - IDE C++"
+            title = f"{tab_title} - {title}"
             if self.current_editor.is_modified():
                 title = f"• {title}"
         self.title(title)
@@ -1272,7 +1671,7 @@ class MainWindow(tk.Tk):
         """Muestra información sobre el IDE."""
         messagebox.showinfo(
             "Acerca de IDE C++",
-            "IDE C++ v1.0\n\n"
+            "IDE C++ v2.0\n\n"
             "Un IDE completo para programar en C++\n"
             "desarrollado en Python con Tkinter.\n\n"
             "Características:\n"
@@ -1282,6 +1681,10 @@ class MainWindow(tk.Tk):
             "• Ejecución de programas\n"
             "• Depuración con GDB\n"
             "• Explorador de archivos\n"
+            "• Archivos abiertos visibles\n"
+            "• Proyectos .cmj\n"
+            "• Creación de clases .h y .cpp\n"
+            "• Temas claro y oscuro\n"
             "• Buscar y reemplazar",
         )
 
@@ -1299,6 +1702,7 @@ class MainWindow(tk.Tk):
             "• Ctrl+G: Ir a línea\n"
             "• Ctrl+Z: Deshacer\n"
             "• Ctrl+Y: Rehacer\n"
+            "• Ctrl+T: Alternar tema\n"
             "• F5: Ejecutar\n"
             "• F6: Compilar y ejecutar\n"
             "• F7: Compilar\n"

@@ -5,6 +5,8 @@ Resaltador de sintaxis para C++ usando Tkinter Text widget.
 import tkinter as tk
 import re
 
+from .theme import ThemeManager
+
 
 class SyntaxHighlighter:
     """Aplica resaltado de sintaxis C++ a un widget Text de Tkinter."""
@@ -49,7 +51,7 @@ class SyntaxHighlighter:
         "#import", "#using",
     }
 
-    # Colores del tema (tema oscuro estilo VS Code)
+    # Colores del tema (por defecto oscuro estilo VS Code)
     COLORS = {
         "background": "#1e1e1e",
         "foreground": "#d4d4d4",
@@ -68,20 +70,27 @@ class SyntaxHighlighter:
         "bracket": "#ffd700",
     }
 
-    def __init__(self, text_widget):
+    def __init__(self, text_widget, theme_manager=None):
         """
         Inicializa el resaltador de sintaxis.
 
         Args:
             text_widget: Widget Text de Tkinter al que aplicar el resaltado.
+            theme_manager: Gestor de temas (opcional).
         """
         self.text = text_widget
+        self.theme_manager = theme_manager or ThemeManager()
         self._setup_tags()
         self._setup_bindings()
 
+    def apply_theme(self):
+        """Reaplica los colores del tema actual."""
+        self._setup_tags()
+        self.highlight()
+
     def _setup_tags(self):
         """Configura las etiquetas (tags) de color para el resaltado."""
-        c = self.COLORS
+        c = self.theme_manager.get_colors()
         self.text.tag_configure("keyword", foreground=c["keyword"])
         self.text.tag_configure("type", foreground=c["type"])
         self.text.tag_configure("string", foreground=c["string"])

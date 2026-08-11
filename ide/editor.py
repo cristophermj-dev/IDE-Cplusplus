@@ -5,18 +5,28 @@ Editor de código con números de línea para el IDE C++.
 import tkinter as tk
 from tkinter import font as tkfont
 
+from .theme import ThemeManager
+
 
 class LineNumbers(tk.Canvas):
     """Canvas que muestra los números de línea sincronizado con el editor."""
 
-    def __init__(self, parent, text_widget, **kwargs):
+    def __init__(self, parent, text_widget, theme_manager=None, **kwargs):
         super().__init__(parent, width=50, **kwargs)
         self.text_widget = text_widget
+        self.theme_manager = theme_manager or ThemeManager()
+        colors = self.theme_manager.get_colors()
         self.configure(
-            bg="#252526",
+            bg=colors["line_number_bg"],
             highlightthickness=0,
         )
         self._font = tkfont.Font(family="Consolas", size=11)
+        self._update()
+
+    def apply_theme(self):
+        """Reaplica los colores del tema."""
+        colors = self.theme_manager.get_colors()
+        self.configure(bg=colors["line_number_bg"])
         self._update()
 
     def _update(self, event=None):
@@ -32,13 +42,14 @@ class LineNumbers(tk.Canvas):
             self.configure(width=width * 8 + 10)
 
             current_line = int(self.text_widget.index("insert").split(".")[0])
+            colors = self.theme_manager.get_colors()
 
             for line in range(first_line, last_line + 1):
                 y = self._get_line_y(line)
                 if y is None:
                     continue
 
-                color = "#ffffff" if line == current_line else "#858585"
+                color = colors["fg"] if line == current_line else colors["line_number"]
                 self.create_text(5, y, anchor="nw", text=str(line),
                                  fill=color, font=self._font)
         except tk.TclError:
