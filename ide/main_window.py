@@ -3,6 +3,7 @@ Ventana principal del IDE C++ - interfaz gráfica completa.
 """
 
 import os
+import sys
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
 from tkinter import font as tkfont
@@ -10,13 +11,25 @@ import subprocess
 import threading
 from datetime import datetime
 
-from .syntax_highlighter import SyntaxHighlighter
-from .editor import LineNumbers
-from .console import ConsolePanel
-from .search_dialog import SearchDialog
-from .compiler import Compiler
-from .theme import ThemeManager
-from .project import ProjectManager
+# Si se ejecuta directamente (python3 ide/main_window.py), ajustar el path
+# para que los imports absolutos del paquete funcionen correctamente.
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from ide.syntax_highlighter import SyntaxHighlighter
+    from ide.editor import LineNumbers
+    from ide.console import ConsolePanel
+    from ide.search_dialog import SearchDialog
+    from ide.compiler import Compiler
+    from ide.theme import ThemeManager
+    from ide.project import ProjectManager
+else:
+    from .syntax_highlighter import SyntaxHighlighter
+    from .editor import LineNumbers
+    from .console import ConsolePanel
+    from .search_dialog import SearchDialog
+    from .compiler import Compiler
+    from .theme import ThemeManager
+    from .project import ProjectManager
 
 
 class CodeEditor(tk.Frame):
@@ -1737,3 +1750,7 @@ def run():
     """Inicia la aplicación."""
     app = MainWindow()
     app.mainloop()
+
+
+if __name__ == "__main__":
+    run()
