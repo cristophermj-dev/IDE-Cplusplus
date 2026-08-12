@@ -1236,7 +1236,19 @@ class MainWindow(tk.Tk):
     # --- Gestión de archivos ---
 
     def new_file(self, content=None):
-        """Crea un nuevo archivo."""
+        """Crea un nuevo archivo.
+
+        Si no se especifica contenido y se crea un archivo .cpp,
+        se genera automáticamente un programa "Hola mundo" funcional
+        (a menos que forme parte de un proyecto, donde se usa el
+        template del proyecto).
+
+        Args:
+            content: Contenido inicial opcional para el editor.
+
+        Returns:
+            CodeEditor: El editor creado.
+        """
         file_id = self.next_file_id
         self.next_file_id += 1
 
@@ -1244,7 +1256,22 @@ class MainWindow(tk.Tk):
         tab_title = f"sin_título_{file_id}.cpp"
 
         if content:
+            # Usar el contenido proporcionado
             editor.set_content(content)
+        else:
+            # Si no hay contenido y no hay un proyecto abierto,
+            # crear un archivo .cpp con el formato de "Hola mundo" funcional
+            if not self.project_manager.has_project():
+                # Plantilla de programa C++ básico con "Hola mundo"
+                hola_mundo = (
+                    '#include <iostream>\n'
+                    '\n'
+                    'int main() {\n'
+                    '    std::cout << "Hola, mundo!" << std::endl;\n'
+                    '    return 0;\n'
+                    '}\n'
+                )
+                editor.set_content(hola_mundo)
 
         self.notebook.add(editor, text=tab_title)
         self.notebook.select(editor)

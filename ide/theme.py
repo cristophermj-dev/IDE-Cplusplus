@@ -37,8 +37,9 @@ class ThemeManager:
         "current_line": "#2a2d2e",   # Color de la línea actual del cursor
 
         # --- Resaltado de sintaxis ---
-        "keyword": "#569cd6",        # Palabras clave de C++
-        "type": "#4ec9b0",           # Tipos de datos
+        "keyword": "#569cd6",        # Palabras clave de C++ (if, for, while, return...)
+        "type": "#4ec9b0",           # Tipos de datos (int, float, string, vector...)
+        "namespace": "#c586c0",      # Espacios de nombres del sistema (std, cout, cin...)
         "string": "#ce9178",         # Cadenas de texto
         "comment": "#6a9955",        # Comentarios
         "number": "#b5cea8",         # Números
@@ -137,8 +138,9 @@ class ThemeManager:
         "current_line": "#e8f0fe",   # Línea actual del cursor
 
         # --- Resaltado de sintaxis ---
-        "keyword": "#0000ff",        # Palabras clave azules
-        "type": "#267f99",           # Tipos azul verdoso
+        "keyword": "#0000ff",        # Palabras clave azules (if, for, while, return...)
+        "type": "#267f99",           # Tipos azul verdoso (int, float, string, vector...)
+        "namespace": "#af00db",      # Espacios de nombres del sistema (std, cout, cin...)
         "string": "#a31515",         # Cadenas rojas oscuras
         "comment": "#008000",        # Comentarios verdes
         "number": "#098658",         # Números verdes oscuros

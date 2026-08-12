@@ -60,6 +60,14 @@ class SyntaxHighlighter:
         "#import", "#using",
     }
 
+    # Elementos del sistema (espacios de nombres, streams, constantes)
+    NAMESPACES = {
+        "std", "cout", "cin", "cerr", "clog", "endl", "flush", "boolalpha",
+        "noboolalpha", "hex", "dec", "oct", "fixed", "scientific",
+        "true", "false", "nullptr", "NULL", "EXIT_SUCCESS", "EXIT_FAILURE",
+        "string_view", "max_size", "size_type", "nullopt", "npos",
+    }
+
     # Colores del tema (por defecto oscuro estilo VS Code)
     COLORS = {
         "background": "#1e1e1e",     # Fondo del editor
@@ -102,6 +110,7 @@ class SyntaxHighlighter:
         c = self.theme_manager.get_colors()
         self.text.tag_configure("keyword", foreground=c["keyword"])
         self.text.tag_configure("type", foreground=c["type"])
+        self.text.tag_configure("namespace", foreground=c["namespace"])
         self.text.tag_configure("string", foreground=c["string"])
         self.text.tag_configure("comment", foreground=c["comment"])
         self.text.tag_configure("number", foreground=c["number"])
@@ -130,6 +139,7 @@ class SyntaxHighlighter:
         # Limpiar todas las etiquetas existentes
         self.text.tag_remove("keyword", "1.0", "end")
         self.text.tag_remove("type", "1.0", "end")
+        self.text.tag_remove("namespace", "1.0", "end")
         self.text.tag_remove("string", "1.0", "end")
         self.text.tag_remove("comment", "1.0", "end")
         self.text.tag_remove("number", "1.0", "end")
@@ -149,6 +159,7 @@ class SyntaxHighlighter:
         self._highlight_preprocessor(content)
         self._highlight_keywords(content)
         self._highlight_types(content)
+        self._highlight_namespaces(content)
         self._highlight_numbers(content)
         self._highlight_functions(content)
         self._highlight_operators(content)
@@ -209,6 +220,14 @@ class SyntaxHighlighter:
             start = f"1.0+{match.start()}c"
             end = f"1.0+{match.end()}c"
             self.text.tag_add("type", start, end)
+
+    def _highlight_namespaces(self, content):
+        """Resalta elementos del sistema (std, cout, cin, endl, etc.)."""
+        pattern = r"\b(" + "|".join(re.escape(n) for n in self.NAMESPACES) + r")\b"
+        for match in re.finditer(pattern, content):
+            start = f"1.0+{match.start()}c"
+            end = f"1.0+{match.end()}c"
+            self.text.tag_add("namespace", start, end)
 
     def _highlight_numbers(self, content):
         """Resalta números (decimales, hexadecimales y con sufijos)."""
