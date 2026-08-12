@@ -1,5 +1,5 @@
 """
-Gestión de proyectos para el IDE C++.
+Gestión de proyectos para MeriCode C++.
 Los proyectos se guardan con extensión .cmj (C++ Make/Manage Project).
 """
 

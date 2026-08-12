@@ -1,5 +1,5 @@
 """
-Editor de código con números de línea para el IDE C++.
+Editor de código con números de línea para MeriCode C++.
 """
 
 import tkinter as tk

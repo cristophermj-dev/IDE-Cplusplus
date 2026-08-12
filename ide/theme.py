@@ -1,5 +1,5 @@
 """
-Sistema de temas (claro/oscuro) para el IDE C++.
+Sistema de temas (claro/oscuro) para MeriCode C++.
 """
 
 

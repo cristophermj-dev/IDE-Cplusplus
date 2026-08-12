@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IDE C++ - Un IDE completo para programar en C++ con Python y Tkinter.
+MeriCode C++ - Un IDE completo para programar en C++ con Python y Tkinter.
 
 Punto de entrada principal de la aplicación.
 """

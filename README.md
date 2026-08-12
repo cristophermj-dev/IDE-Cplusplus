@@ -1,6 +1,9 @@
-# 🚀 IDE C++
+# 🚀 MeriCode C++
 
 Un IDE completo para programar en C++ desarrollado en **Python** con **Tkinter**, con interfaz gráfica moderna en tema oscuro.
+
+**Autor:** MSc. Cristopher Montero Jiménez  
+**© 2026 MERIMAD. Todos los derechos reservados.**
 
 ## ✨ Características
 
@@ -77,11 +80,11 @@ python3 main.py
 ## 📁 Estructura del proyecto
 
 ```
-IDE-Cplusplus/
+MeriCode-Cplusplus/
 ├── main.py                    # Punto de entrada principal
 ├── README.md                  # Documentación
 ├── ide/
-│   ├── __init__.py           # Paquete IDE C++
+│   ├── __init__.py           # Paquete MeriCode C++
 │   ├── main_window.py        # Ventana principal e interfaz gráfica
 │   ├── editor.py             # Editor con números de línea
 │   ├── syntax_highlighter.py # Resaltador de sintaxis C++
@@ -111,4 +114,4 @@ Si deseas contribuir al proyecto:
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT.
+© 2026 MERIMAD. Todos los derechos reservados.

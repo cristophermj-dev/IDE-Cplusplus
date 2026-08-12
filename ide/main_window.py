@@ -1,5 +1,5 @@
 """
-Ventana principal del IDE C++ - interfaz gráfica completa.
+Ventana principal de MeriCode C++ - interfaz gráfica completa.
 """
 
 import os
@@ -561,12 +561,12 @@ class FileExplorer(tk.Frame):
 
 
 class MainWindow(tk.Tk):
-    """Ventana principal del IDE C++."""
+    """Ventana principal de MeriCode C++."""
 
     def __init__(self):
         super().__init__()
 
-        self.title("IDE C++")
+        self.title("MeriCode C++")
         self.geometry("1200x750")
         self.minsize(800, 500)
 
@@ -689,7 +689,6 @@ class MainWindow(tk.Tk):
         # Panel principal dividido (horizontal: explorador | editor)
         self.main_paned = ttk.PanedWindow(self, orient="horizontal")
         self.main_paned.pack(fill="both", expand=True)
-        self.main_paned.configure(sashwidth=6)
 
         # Explorador de archivos (izquierda)
         self.explorer_frame = ttk.Frame(self.main_paned, style="Panel.TFrame")
@@ -704,7 +703,6 @@ class MainWindow(tk.Tk):
         # Panel vertical (editor arriba, consola abajo) - redimensionable
         self.vertical_paned = ttk.PanedWindow(editor_container, orient="vertical")
         self.vertical_paned.pack(fill="both", expand=True)
-        self.vertical_paned.configure(sashwidth=6)
 
         # Notebook para los archivos abiertos
         self.notebook = ttk.Notebook(self.vertical_paned)
@@ -1696,7 +1694,7 @@ class MainWindow(tk.Tk):
 
     def update_title(self):
         """Actualiza el título de la ventana."""
-        title = "IDE C++"
+        title = "MeriCode C++"
         if self.project_manager.has_project():
             title = f"{self.project_manager.current_project.name} - {title}"
         if self.current_editor:
@@ -1741,10 +1739,12 @@ class MainWindow(tk.Tk):
     def show_about(self):
         """Muestra información sobre el IDE."""
         messagebox.showinfo(
-            "Acerca de IDE C++",
-            "IDE C++ v2.0\n\n"
+            "Acerca de MeriCode C++",
+            "MeriCode C++ v2.0\n\n"
             "Un IDE completo para programar en C++\n"
             "desarrollado en Python con Tkinter.\n\n"
+            "Autor: MSc. Cristopher Montero Jiménez\n"
+            "© 2026 MERIMAD. Todos los derechos reservados.\n\n"
             "Características:\n"
             "• Editor con resaltado de sintaxis\n"
             "• Números de línea y autocompletado\n"

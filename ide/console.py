@@ -1,5 +1,5 @@
 """
-Consola de salida para el IDE C++.
+Consola de salida para MeriCode C++.
 """
 
 import tkinter as tk
