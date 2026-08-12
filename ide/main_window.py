@@ -686,37 +686,86 @@ class MainWindow(tk.Tk):
 
     def _build_ui(self):
         """Construye la interfaz principal."""
-        # Panel principal dividido
+        # Panel principal dividido (horizontal: explorador | editor)
         self.main_paned = ttk.PanedWindow(self, orient="horizontal")
         self.main_paned.pack(fill="both", expand=True)
+        self.main_paned.configure(sashwidth=6)
 
         # Explorador de archivos (izquierda)
-        explorer_frame = ttk.Frame(self.main_paned, style="Panel.TFrame")
-        self.file_explorer = FileExplorer(explorer_frame, self)
+        self.explorer_frame = ttk.Frame(self.main_paned, style="Panel.TFrame")
+        self.file_explorer = FileExplorer(self.explorer_frame, self)
         self.file_explorer.pack(fill="both", expand=True)
-        self.main_paned.add(explorer_frame, weight=1)
+        self.main_paned.add(self.explorer_frame, weight=1)
 
         # Área del editor (centro)
         editor_container = ttk.Frame(self.main_paned)
         self.main_paned.add(editor_container, weight=4)
 
-        # Notebook para los archivos abiertos
-        self.notebook = ttk.Notebook(editor_container)
-        self.notebook.pack(fill="both", expand=True)
-        self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
+        # Panel vertical (editor arriba, consola abajo) - redimensionable
+        self.vertical_paned = ttk.PanedWindow(editor_container, orient="vertical")
+        self.vertical_paned.pack(fill="both", expand=True)
+        self.vertical_paned.configure(sashwidth=6)
 
-        # Panel de consola (abajo)
-        self.console = ConsolePanel(editor_container, self.theme_manager)
-        self.console.pack(fill="both", side="bottom", pady=(2, 0))
+        # Notebook para los archivos abiertos
+        self.notebook = ttk.Notebook(self.vertical_paned)
+        self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
+        self.vertical_paned.add(self.notebook, weight=3)
+
+        # Panel de consola (abajo) - redimensionable con el mouse
+        self.console = ConsolePanel(self.vertical_paned, self.theme_manager)
+        self.vertical_paned.add(self.console, weight=1)
 
         self._toggle_console_var = tk.BooleanVar(value=True)
+        self._toggle_explorer_var = tk.BooleanVar(value=True)
+
+    def _update_panel_buttons(self):
+        """Actualiza los textos de los botones de visibilidad."""
+        if hasattr(self, "explorer_toggle_btn"):
+            self.explorer_toggle_btn.config(
+                text="📁 OCULTAR" if self._toggle_explorer_var.get() else "📁 MOSTRAR")
+        if hasattr(self, "console_toggle_btn"):
+            self.console_toggle_btn.config(
+                text="▤ OCULTAR" if self._toggle_console_var.get() else "▤ MOSTRAR")
 
     def _toggle_console(self):
         """Muestra u oculta la consola."""
         if self._toggle_console_var.get():
-            self.console.pack(fill="both", side="bottom")
+            # Verificar si ya está en el PanedWindow antes de añadirlo
+            try:
+                self.vertical_paned.pane(self.console)
+            except tk.TclError:
+                self.vertical_paned.add(self.console, weight=1)
         else:
-            self.console.pack_forget()
+            try:
+                self.vertical_paned.forget(self.console)
+            except tk.TclError:
+                pass
+        self._update_panel_buttons()
+
+    def toggle_console(self):
+        """Alterna la visibilidad de la consola."""
+        self._toggle_console_var.set(not self._toggle_console_var.get())
+        self._toggle_console()
+
+    def _toggle_explorer(self):
+        """Muestra u oculta el explorador de archivos."""
+        if self._toggle_explorer_var.get():
+            # Verificar si ya está en el PanedWindow antes de añadirlo
+            try:
+                self.main_paned.pane(self.explorer_frame)
+            except tk.TclError:
+                self.main_paned.add(self.explorer_frame, weight=1)
+        else:
+            try:
+                self.main_paned.forget(self.explorer_frame)
+            except tk.TclError:
+                pass
+        self._update_panel_buttons()
+
+    def toggle_explorer(self):
+        """Alterna la visibilidad del explorador de archivos."""
+        self._toggle_explorer_var.set(not self._toggle_explorer_var.get())
+        self._toggle_explorer()
 
     def _create_menus(self):
         """Crea la barra de menús."""
@@ -787,7 +836,8 @@ class MainWindow(tk.Tk):
         # Menú Ver
         view_menu = tk.Menu(menubar, tearoff=False)
         view_menu.add_checkbutton(label="Explorador de archivos",
-                                  command=self.toggle_explorer)
+                                  variable=self._toggle_explorer_var,
+                                  command=self._toggle_explorer)
         view_menu.add_checkbutton(label="Consola", variable=self._toggle_console_var,
                                   command=self._toggle_console)
         view_menu.add_separator()
@@ -847,6 +897,19 @@ class MainWindow(tk.Tk):
         """Crea la barra de herramientas."""
         toolbar = ttk.Frame(self, style="Toolbar.TFrame")
         toolbar.pack(side="top", fill="x")
+
+        # Botones de visibilidad de paneles
+        self.explorer_toggle_btn = ttk.Button(
+            toolbar, text="📁 OCULTAR", width=9,
+            command=self.toggle_explorer)
+        self.explorer_toggle_btn.pack(side="left", padx=2, pady=3)
+
+        self.console_toggle_btn = ttk.Button(
+            toolbar, text="▤ OCULTAR", width=9,
+            command=self.toggle_console)
+        self.console_toggle_btn.pack(side="left", padx=2, pady=3)
+
+        ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
 
         # Botones de archivo
         ttk.Button(toolbar, text="📄 Nuevo", width=8,
@@ -1623,11 +1686,6 @@ class MainWindow(tk.Tk):
             return
         self.current_editor.editor_font.configure(size=11)
         self.current_editor.line_numbers._font.configure(size=11)
-
-    def toggle_explorer(self):
-        """Muestra u oculta el explorador de archivos."""
-        # Esta función es manejada por el menú Checkbutton
-        pass
 
     def hide_panel(self):
         """Oculta paneles al presionar Escape."""
