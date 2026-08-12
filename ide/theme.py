@@ -37,8 +37,8 @@ class ThemeManager:
         "current_line": "#2a2d2e",   # Color de la línea actual del cursor
 
         # --- Resaltado de sintaxis ---
-        "keyword": "#569cd6",        # Palabras clave de C++ (if, for, while, return...)
-        "type": "#4ec9b0",           # Tipos de datos (int, float, string, vector...)
+        "keyword": "#569cd6",        # Palabras reservadas: if, for, while, return, int, float, char, bool, void, true, false, nullptr...
+        "type": "#4ec9b0",           # Tipos de la STL (string, vector, map, list...)
         "namespace": "#c586c0",      # Espacios de nombres del sistema (std, cout, cin...)
         "string": "#ce9178",         # Cadenas de texto
         "comment": "#6a9955",        # Comentarios
@@ -47,6 +47,8 @@ class ThemeManager:
         "function": "#dcdcaa",       # Llamadas a funciones
         "operator": "#d4d4d4",       # Operadores
         "bracket": "#ffd700",        # Corchetes/paréntesis
+        "library": "#ce9178",        # Nombres de librerías en #include <...>
+        "user_class": "#4ec9b0",     # Clases definidas por el usuario
 
         # --- Mensajes de la consola ---
         "error": "#f14c4c",          # Mensajes de error
@@ -138,8 +140,8 @@ class ThemeManager:
         "current_line": "#e8f0fe",   # Línea actual del cursor
 
         # --- Resaltado de sintaxis ---
-        "keyword": "#0000ff",        # Palabras clave azules (if, for, while, return...)
-        "type": "#267f99",           # Tipos azul verdoso (int, float, string, vector...)
+        "keyword": "#0000ff",        # Palabras reservadas azules: if, for, while, return, int, float, char, bool, void, true, false, nullptr...
+        "type": "#267f99",           # Tipos de la STL azul verdoso (string, vector, map...)
         "namespace": "#af00db",      # Espacios de nombres del sistema (std, cout, cin...)
         "string": "#a31515",         # Cadenas rojas oscuras
         "comment": "#008000",        # Comentarios verdes
@@ -148,6 +150,8 @@ class ThemeManager:
         "function": "#795e26",       # Funciones marrones
         "operator": "#1e1e1e",       # Operadores oscuros
         "bracket": "#811f3f",        # Corchetes rojo oscuro
+        "library": "#a31515",        # Nombres de librerías en #include <...>
+        "user_class": "#267f99",     # Clases definidas por el usuario
 
         # --- Mensajes de la consola ---
         "error": "#f14c4c",          # Errores rojos

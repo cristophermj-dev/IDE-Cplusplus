@@ -1266,8 +1266,10 @@ class MainWindow(tk.Tk):
                 hola_mundo = (
                     '#include <iostream>\n'
                     '\n'
+                    'using namespace std;\n'
+                    '\n'
                     'int main() {\n'
-                    '    std::cout << "Hola, mundo!" << std::endl;\n'
+                    '    cout << "Hola, mundo!" << endl;\n'
                     '    return 0;\n'
                     '}\n'
                 )

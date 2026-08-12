@@ -39,11 +39,13 @@ class SyntaxHighlighter:
         "while", "xor", "xor_eq",
     }
 
-    # Tipos de datos comunes de C++ y la STL
+    # Tipos de datos de la STL y la biblioteca estándar de C++
+    # Los tipos fundamentales (int, float, char, bool, void, etc.) son
+    # palabras reservadas del lenguaje y se resaltan como keywords,
+    # igual que en Visual Studio.
     TYPES = {
-        "int", "float", "double", "char", "bool", "void", "long", "short",
-        "unsigned", "signed", "string", "vector", "map", "set", "list",
-        "array", "auto", "size_t", "uint8_t", "uint16_t", "uint32_t",
+        "string", "vector", "map", "set", "list",
+        "array", "size_t", "uint8_t", "uint16_t", "uint32_t",
         "uint64_t", "int8_t", "int16_t", "int32_t", "int64_t", "ostream",
         "istream", "fstream", "ifstream", "ofstream", "stringstream",
         "unique_ptr", "shared_ptr", "weak_ptr", "function", "pair", "tuple",
@@ -61,10 +63,11 @@ class SyntaxHighlighter:
     }
 
     # Elementos del sistema (espacios de nombres, streams, constantes)
+    # true, false y nullptr son palabras reservadas y ya están en KEYWORDS.
     NAMESPACES = {
         "std", "cout", "cin", "cerr", "clog", "endl", "flush", "boolalpha",
         "noboolalpha", "hex", "dec", "oct", "fixed", "scientific",
-        "true", "false", "nullptr", "NULL", "EXIT_SUCCESS", "EXIT_FAILURE",
+        "NULL", "EXIT_SUCCESS", "EXIT_FAILURE",
         "string_view", "max_size", "size_type", "nullopt", "npos",
     }
 
@@ -118,6 +121,25 @@ class SyntaxHighlighter:
         self.text.tag_configure("function", foreground=c["function"])
         self.text.tag_configure("operator", foreground=c["operator"])
         self.text.tag_configure("bracket", foreground=c["bracket"])
+        self.text.tag_configure("library", foreground=c["library"])
+        self.text.tag_configure("user_class", foreground=c["user_class"])
+
+        # Establecer prioridades de las etiquetas.
+        # En Tkinter, cuando dos etiquetas se superponen en un mismo
+        # carácter, la de mayor prioridad es la que se muestra.
+        # Los comentarios, cadenas y preprocesador deben estar por encima
+        # de keywords/tipos/funciones, mientras que las palabras reservadas
+        # deben estar por encima de las llamadas a funciones.
+        self.text.tag_raise("keyword")
+        self.text.tag_raise("type")
+        self.text.tag_raise("namespace")
+        self.text.tag_raise("number")
+        self.text.tag_raise("bracket")
+        self.text.tag_raise("preprocessor")
+        self.text.tag_raise("string")
+        self.text.tag_raise("comment")
+        self.text.tag_raise("library")
+        self.text.tag_raise("user_class")
 
     def _setup_bindings(self):
         """Configura los eventos para el resaltado en tiempo real."""
@@ -147,6 +169,8 @@ class SyntaxHighlighter:
         self.text.tag_remove("function", "1.0", "end")
         self.text.tag_remove("operator", "1.0", "end")
         self.text.tag_remove("bracket", "1.0", "end")
+        self.text.tag_remove("library", "1.0", "end")
+        self.text.tag_remove("user_class", "1.0", "end")
 
         # Obtener el contenido completo del editor
         content = self.text.get("1.0", "end-1c")
@@ -157,9 +181,11 @@ class SyntaxHighlighter:
         self._highlight_comments(content)
         self._highlight_strings(content)
         self._highlight_preprocessor(content)
+        self._highlight_libraries(content)
         self._highlight_keywords(content)
         self._highlight_types(content)
         self._highlight_namespaces(content)
+        self._highlight_user_classes(content)
         self._highlight_numbers(content)
         self._highlight_functions(content)
         self._highlight_operators(content)
@@ -205,6 +231,14 @@ class SyntaxHighlighter:
             end = f"1.0+{match.end(1)}c"
             self.text.tag_add("preprocessor", start, end)
 
+    def _highlight_libraries(self, content):
+        """Resalta los nombres de librerías en #include <...>."""
+        pattern = r"#include\s*<([^>]+)>"
+        for match in re.finditer(pattern, content):
+            start = f"1.0+{match.start(1)}c"
+            end = f"1.0+{match.end(1)}c"
+            self.text.tag_add("library", start, end)
+
     def _highlight_keywords(self, content):
         """Resalta palabras clave de C++."""
         pattern = r"\b(" + "|".join(re.escape(k) for k in self.KEYWORDS) + r")\b"
@@ -229,6 +263,30 @@ class SyntaxHighlighter:
             end = f"1.0+{match.end()}c"
             self.text.tag_add("namespace", start, end)
 
+    def _highlight_user_classes(self, content):
+        """Resalta nombres de clases definidas por el usuario.
+
+        Detecta identificadores que siguen a 'class', 'struct' o que
+        se usan como tipos (identificador seguido de un nombre de variable
+        o de '::' para constructores).
+        """
+        # Clases declaradas con 'class' o 'struct'
+        pattern = r"\b(?:class|struct)\s+([A-Za-z_]\w*)"
+        for match in re.finditer(pattern, content):
+            start = f"1.0+{match.start(1)}c"
+            end = f"1.0+{match.end(1)}c"
+            self.text.tag_add("user_class", start, end)
+
+        # Constructores y destructores: NombreClase::NombreClase o NombreClase::~
+        pattern = r"\b([A-Za-z_]\w*)::(?:~?[A-Za-z_]\w*)"
+        for match in re.finditer(pattern, content):
+            name = match.group(1)
+            if name in self.KEYWORDS or name in self.TYPES or name in self.NAMESPACES:
+                continue
+            start = f"1.0+{match.start(1)}c"
+            end = f"1.0+{match.end(1)}c"
+            self.text.tag_add("user_class", start, end)
+
     def _highlight_numbers(self, content):
         """Resalta números (decimales, hexadecimales y con sufijos)."""
         pattern = r"\b(0x[0-9a-fA-F]+|\d+\.?\d*[fFlLuU]*)\b"
@@ -238,9 +296,17 @@ class SyntaxHighlighter:
             self.text.tag_add("number", start, end)
 
     def _highlight_functions(self, content):
-        """Resalta llamadas a funciones (identificador seguido de paréntesis)."""
+        """Resalta llamadas a funciones (identificador seguido de paréntesis).
+
+        Se omiten las palabras reservadas y los tipos conocidos para
+        evitar que construcciones como `if (`, `for (` o `static_cast<`
+        se coloreen como funciones (igual que en Visual Studio).
+        """
         pattern = r"\b([a-zA-Z_]\w*)\s*(?=\()"
         for match in re.finditer(pattern, content):
+            name = match.group(1)
+            if name in self.KEYWORDS or name in self.TYPES or name in self.NAMESPACES:
+                continue
             start = f"1.0+{match.start(1)}c"
             end = f"1.0+{match.end(1)}c"
             self.text.tag_add("function", start, end)
