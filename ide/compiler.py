@@ -1,5 +1,10 @@
 """
 Módulo para compilar, ejecutar y depurar programas C++.
+
+Este módulo proporciona la clase Compiler que maneja la
+compilación con g++/clang++, la ejecución de programas y
+las sesiones de depuración con GDB, todo en hilos separados
+para no bloquear la interfaz gráfica.
 """
 
 import os
@@ -12,19 +17,29 @@ import platform
 
 
 class Compiler:
-    """Maneja la compilación, ejecución y depuración de código C++."""
+    """Maneja la compilación, ejecución y depuración de código C++.
+
+    La clase detecta automáticamente el compilador disponible en el
+    sistema (g++, clang++ o cl en Windows) y ejecuta los procesos
+    en hilos separados para mantener la interfaz responsiva.
+    """
 
     def __init__(self):
-        """Inicializa el compilador."""
-        self.process = None
-        self.is_compiling = False
-        self.is_running = False
-        self.is_debugging = False
-        self._cancel_flag = False
+        """Inicializa el compilador y detecta el compilador disponible."""
+        self.process = None          # Proceso activo (compilación/ejecución/depuración)
+        self.is_compiling = False    # Indica si hay una compilación en curso
+        self.is_running = False      # Indica si hay un programa ejecutándose
+        self.is_debugging = False    # Indica si hay una sesión de depuración activa
+        self._cancel_flag = False    # Bandera para cancelar procesos
         self._check_compiler()
 
     def _check_compiler(self):
-        """Verifica si hay un compilador C++ disponible."""
+        """Verifica si hay un compilador C++ disponible en el sistema.
+
+        Busca g++, clang++ y cl (MSVC) según la plataforma y
+        guarda el nombre, comando y versión del primero que encuentre.
+        """
+        # Lista de compiladores candidatos según la plataforma
         candidates = []
         if platform.system() == "Windows":
             candidates = [
@@ -39,6 +54,7 @@ class Compiler:
                 ("c++", ["c++", "--version"]),
             ]
 
+        # Probar cada compilador candidato
         for name, cmd in candidates:
             try:
                 result = subprocess.run(
@@ -47,23 +63,32 @@ class Compiler:
                 if result.returncode in (0, 1):  # cl puede retornar 1
                     self.compiler_name = name
                     self.compiler_cmd = cmd[0]
-                    # Extraer versión
+                    # Extraer la primera línea de la versión
                     first_line = result.stdout.split("\n")[0] or result.stderr.split("\n")[0]
                     self.compiler_version = first_line.strip()
                     return
             except (subprocess.SubprocessError, FileNotFoundError):
                 continue
 
+        # No se encontró ningún compilador
         self.compiler_name = None
         self.compiler_cmd = None
         self.compiler_version = "No se encontró compilador"
 
     def is_available(self):
-        """Verifica si hay un compilador disponible."""
+        """Verifica si hay un compilador disponible.
+
+        Returns:
+            bool: True si hay un compilador configurado.
+        """
         return self.compiler_cmd is not None
 
     def get_compiler_info(self):
-        """Obtiene información del compilador."""
+        """Obtiene información del compilador detectado.
+
+        Returns:
+            dict: Diccionario con nombre, versión y disponibilidad.
+        """
         return {
             "name": self.compiler_name,
             "version": self.compiler_version,
@@ -76,13 +101,17 @@ class Compiler:
         Compila un archivo fuente C++ en un hilo separado.
 
         Args:
-            source_file: Ruta del archivo .cpp
-            output_file: Ruta del ejecutable de salida
-            std: Estándar de C++ (c++11, c++14, c++17, c++20)
-            extra_flags: Lista de flags adicionales para el compilador
-            on_output: Callback para la salida del proceso
-            on_done: Callback al finalizar (recibe el código de retorno)
+            source_file: Ruta del archivo .cpp a compilar.
+            output_file: Ruta del ejecutable de salida (opcional).
+            std: Estándar de C++ a usar (c++11, c++14, c++17, c++20).
+            extra_flags: Lista de flags adicionales para el compilador.
+            on_output: Callback que recibe (línea, etiqueta) de la salida.
+            on_done: Callback que recibe el código de retorno al finalizar.
+
+        Returns:
+            threading.Thread: El hilo de compilación, o None si falla.
         """
+        # Verificar que haya un compilador disponible
         if not self.is_available():
             if on_output:
                 on_output(
@@ -94,6 +123,7 @@ class Compiler:
                 on_done(1)
             return None
 
+        # Verificar que el archivo fuente exista
         if not os.path.exists(source_file):
             if on_output:
                 on_output(f"Error: No existe el archivo {source_file}\n", "error")
@@ -101,10 +131,12 @@ class Compiler:
                 on_done(1)
             return None
 
+        # Determinar el nombre del ejecutable de salida si no se especifica
         if output_file is None:
             base = os.path.splitext(source_file)[0]
             output_file = self._get_executable_name(base)
 
+        # Construir el comando de compilación
         flags = [self.compiler_cmd, "-std=" + std, source_file, "-o", output_file]
         if extra_flags:
             flags.extend(extra_flags)
@@ -112,6 +144,7 @@ class Compiler:
         self.is_compiling = True
         self._cancel_flag = False
 
+        # Iniciar la compilación en un hilo separado
         thread = threading.Thread(
             target=self._compile_thread,
             args=(flags, on_output, on_done),
@@ -121,11 +154,12 @@ class Compiler:
         return thread
 
     def _compile_thread(self, flags, on_output, on_done):
-        """Hilo de compilación."""
+        """Hilo de compilación que ejecuta el proceso del compilador."""
         try:
             if on_output:
                 on_output("Compilando...\n", "info")
 
+            # Ejecutar el compilador capturando stdout y stderr
             self.process = subprocess.Popen(
                 flags,
                 stdout=subprocess.PIPE,
@@ -137,11 +171,13 @@ class Compiler:
             stdout_lines = []
             stderr_lines = []
 
+            # Leer la salida estándar línea por línea
             for line in self.process.stdout:
                 stdout_lines.append(line)
                 if on_output:
                     on_output(line, "normal")
 
+            # Leer los errores línea por línea
             for line in self.process.stderr:
                 stderr_lines.append(line)
                 if on_output:
@@ -150,6 +186,7 @@ class Compiler:
             self.process.wait()
             returncode = self.process.returncode
 
+            # Informar del resultado de la compilación
             if returncode == 0:
                 if on_output:
                     on_output("✓ Compilación exitosa\n", "success")
@@ -166,21 +203,26 @@ class Compiler:
             if on_done:
                 on_done(1)
         finally:
+            # Limpiar el estado de compilación
             self.is_compiling = False
             self.process = None
 
     def run_program(self, executable, args=None, cwd=None,
                     on_output=None, on_done=None):
         """
-        Ejecuta un programa compilado.
+        Ejecuta un programa compilado en un hilo separado.
 
         Args:
-            executable: Ruta del ejecutable
-            args: Lista de argumentos para el programa
-            cwd: Directorio de trabajo
-            on_output: Callback para la salida del proceso
-            on_done: Callback al finalizar
+            executable: Ruta del ejecutable a ejecutar.
+            args: Lista de argumentos para el programa (opcional).
+            cwd: Directorio de trabajo del programa (opcional).
+            on_output: Callback que recibe (línea, etiqueta) de la salida.
+            on_done: Callback que recibe el código de retorno al finalizar.
+
+        Returns:
+            threading.Thread: El hilo de ejecución, o None si falla.
         """
+        # Verificar que el ejecutable exista
         if not os.path.exists(executable):
             if on_output:
                 on_output(f"Error: No existe el ejecutable {executable}\n", "error")
@@ -188,6 +230,7 @@ class Compiler:
                 on_done(1)
             return None
 
+        # Construir el comando de ejecución
         cmd = [executable]
         if args:
             cmd.extend(args)
@@ -195,6 +238,7 @@ class Compiler:
         self.is_running = True
         self._cancel_flag = False
 
+        # Iniciar la ejecución en un hilo separado
         thread = threading.Thread(
             target=self._run_thread,
             args=(cmd, cwd, on_output, on_done),
@@ -204,11 +248,12 @@ class Compiler:
         return thread
 
     def _run_thread(self, cmd, cwd, on_output, on_done):
-        """Hilo de ejecución."""
+        """Hilo de ejecución que corre el programa compilado."""
         try:
             if on_output:
                 on_output(f"$ {' '.join(cmd)}\n", "info")
 
+            # Ejecutar el programa capturando stdout y stderr
             self.process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -218,7 +263,7 @@ class Compiler:
                 cwd=cwd,
             )
 
-            # Leer stdout y stderr en hilos separados
+            # Leer stdout y stderr en hilos separados para evitar bloqueos
             def read_stream(stream, is_error):
                 for line in stream:
                     if on_output:
@@ -229,6 +274,7 @@ class Compiler:
             t1.start()
             t2.start()
 
+            # Esperar a que el proceso termine
             self.process.wait()
             t1.join()
             t2.join()
@@ -246,6 +292,7 @@ class Compiler:
             if on_done:
                 on_done(1)
         finally:
+            # Limpiar el estado de ejecución
             self.is_running = False
             self.process = None
 
@@ -254,12 +301,15 @@ class Compiler:
         Inicia una sesión de depuración con GDB.
 
         Args:
-            executable: Ruta del ejecutable
-            source_file: Ruta del archivo fuente para símbolos
-            on_output: Callback para la salida
-            on_done: Callback al finalizar
+            executable: Ruta del ejecutable a depurar.
+            source_file: Ruta del archivo fuente para los símbolos.
+            on_output: Callback que recibe (línea, etiqueta) de la salida.
+            on_done: Callback que recibe el código de retorno al finalizar.
+
+        Returns:
+            threading.Thread: El hilo de depuración, o None si falla.
         """
-        # Detectar gdb
+        # Detectar si GDB está instalado
         gdb_path = shutil.which("gdb")
         if not gdb_path:
             if on_output:
@@ -272,6 +322,7 @@ class Compiler:
                 on_done(1)
             return None
 
+        # Verificar que el ejecutable exista
         if not os.path.exists(executable):
             if on_output:
                 on_output(f"Error: No existe el ejecutable {executable}\n", "error")
@@ -286,7 +337,7 @@ class Compiler:
             temp_dir = tempfile.mkdtemp(prefix="ide_cpp_")
             script_file = os.path.join(temp_dir, "gdb_script.txt")
 
-            # Compilado con -g para símbolos de depuración
+            # Script de GDB que establece un breakpoint en main y muestra información
             gdb_script = f"""
 set pagination off
 set confirm off
@@ -306,6 +357,7 @@ quit
             if on_output:
                 on_output("Iniciando depuración con GDB...\n", "info")
 
+            # Iniciar la depuración en un hilo separado
             thread = threading.Thread(
                 target=self._debug_thread,
                 args=(cmd, on_output, on_done),
@@ -317,6 +369,7 @@ quit
         except Exception as e:
             if on_output:
                 on_output(f"Error al preparar depuración: {str(e)}\n", "error")
+            # Limpiar archivos temporales en caso de error
             if script_file and os.path.exists(script_file):
                 try:
                     os.remove(script_file)
@@ -332,7 +385,7 @@ quit
             return None
 
     def _debug_thread(self, cmd, on_output, on_done):
-        """Hilo de depuración."""
+        """Hilo de depuración que ejecuta GDB en modo batch."""
         try:
             self.process = subprocess.Popen(
                 cmd,
@@ -342,6 +395,7 @@ quit
             )
             stdout, stderr = self.process.communicate()
 
+            # Enviar la salida de GDB a los callbacks
             if stdout and on_output:
                 on_output(stdout, "debug")
             if stderr and on_output:
@@ -360,6 +414,7 @@ quit
             if on_done:
                 on_done(1)
         finally:
+            # Limpiar el estado de depuración
             self.is_debugging = False
             self.process = None
 
@@ -368,12 +423,13 @@ quit
         Compila y ejecuta un archivo fuente en secuencia.
 
         Args:
-            source_file: Ruta del archivo .cpp
-            args: Argumentos para el programa
-            on_output: Callback para la salida
-            on_done: Callback al finalizar
+            source_file: Ruta del archivo .cpp a compilar y ejecutar.
+            args: Argumentos para el programa (opcional).
+            on_output: Callback que recibe (línea, etiqueta) de la salida.
+            on_done: Callback que recibe el código de retorno al finalizar.
         """
         def handle_compile(returncode):
+            # Si la compilación fue exitosa, ejecutar el programa
             if returncode == 0:
                 base = os.path.splitext(source_file)[0]
                 executable = self._get_executable_name(base)
@@ -384,13 +440,21 @@ quit
         self.compile_source(source_file, on_output=on_output, on_done=handle_compile)
 
     def _get_executable_name(self, base_path):
-        """Obtiene el nombre del ejecutable según la plataforma."""
+        """
+        Obtiene el nombre del ejecutable según la plataforma.
+
+        Args:
+            base_path: Ruta base sin extensión.
+
+        Returns:
+            str: Ruta del ejecutable con la extensión adecuada.
+        """
         if platform.system() == "Windows":
             return base_path + ".exe"
         return base_path
 
     def stop(self):
-        """Detiene el proceso en ejecución."""
+        """Detiene el proceso en ejecución (compilación, programa o GDB)."""
         self._cancel_flag = True
         if self.process and self.process.poll() is None:
             try:
@@ -408,11 +472,19 @@ quit
                     pass
 
     def is_busy(self):
-        """Verifica si el compilador está ocupado."""
+        """Verifica si el compilador está ocupado con algún proceso.
+
+        Returns:
+            bool: True si hay compilación, ejecución o depuración en curso.
+        """
         return self.is_compiling or self.is_running or self.is_debugging
 
     def get_status_message(self):
-        """Obtiene un mensaje de estado del compilador."""
+        """Obtiene un mensaje de estado del compilador.
+
+        Returns:
+            str: Mensaje descriptivo del estado actual.
+        """
         if not self.is_available():
             return "Sin compilador"
         if self.is_compiling:

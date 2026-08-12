@@ -1,5 +1,9 @@
 """
 Resaltador de sintaxis para C++ usando Tkinter Text widget.
+
+Este módulo aplica colores a las palabras clave, tipos, cadenas,
+comentarios, números, directivas de preprocesador, funciones,
+operadores y corchetes del código C++ en el editor.
 """
 
 import tkinter as tk
@@ -9,9 +13,14 @@ from .theme import ThemeManager
 
 
 class SyntaxHighlighter:
-    """Aplica resaltado de sintaxis C++ a un widget Text de Tkinter."""
+    """Aplica resaltado de sintaxis C++ a un widget Text de Tkinter.
 
-    # Palabras clave de C++
+    El resaltador utiliza expresiones regulares para identificar
+    los diferentes elementos del lenguaje C++ y les aplica etiquetas
+    (tags) de color configuradas según el tema activo.
+    """
+
+    # Palabras clave de C++ (incluye C++11, C++14, C++17 y C++20)
     KEYWORDS = {
         "alignas", "alignof", "and", "and_eq", "asm", "auto", "bitand",
         "bitor", "bool", "break", "case", "catch", "char", "char8_t",
@@ -30,7 +39,7 @@ class SyntaxHighlighter:
         "while", "xor", "xor_eq",
     }
 
-    # Tipos de datos comunes
+    # Tipos de datos comunes de C++ y la STL
     TYPES = {
         "int", "float", "double", "char", "bool", "void", "long", "short",
         "unsigned", "signed", "string", "vector", "map", "set", "list",
@@ -44,7 +53,7 @@ class SyntaxHighlighter:
         "multimap", "multiset", "bitset", "complex", "valarray",
     }
 
-    # Directivas de preprocesador
+    # Directivas de preprocesador de C++
     PREPROCESSOR = {
         "#include", "#define", "#undef", "#ifdef", "#ifndef", "#if",
         "#else", "#elif", "#endif", "#pragma", "#error", "#line",
@@ -53,21 +62,21 @@ class SyntaxHighlighter:
 
     # Colores del tema (por defecto oscuro estilo VS Code)
     COLORS = {
-        "background": "#1e1e1e",
-        "foreground": "#d4d4d4",
-        "keyword": "#569cd6",
-        "type": "#4ec9b0",
-        "string": "#ce9178",
-        "comment": "#6a9955",
-        "number": "#b5cea8",
-        "preprocessor": "#c586c0",
-        "function": "#dcdcaa",
-        "line_number": "#858585",
-        "line_number_bg": "#252526",
-        "current_line": "#2a2d2e",
-        "selection": "#264f78",
-        "operator": "#d4d4d4",
-        "bracket": "#ffd700",
+        "background": "#1e1e1e",     # Fondo del editor
+        "foreground": "#d4d4d4",     # Texto normal
+        "keyword": "#569cd6",        # Palabras clave
+        "type": "#4ec9b0",           # Tipos de datos
+        "string": "#ce9178",         # Cadenas de texto
+        "comment": "#6a9955",        # Comentarios
+        "number": "#b5cea8",         # Números
+        "preprocessor": "#c586c0",   # Directivas de preprocesador
+        "function": "#dcdcaa",       # Llamadas a funciones
+        "line_number": "#858585",    # Números de línea
+        "line_number_bg": "#252526", # Fondo de números de línea
+        "current_line": "#2a2d2e",   # Línea actual
+        "selection": "#264f78",      # Selección de texto
+        "operator": "#d4d4d4",       # Operadores
+        "bracket": "#ffd700",        # Corchetes y paréntesis
     }
 
     def __init__(self, text_widget, theme_manager=None):
@@ -84,7 +93,7 @@ class SyntaxHighlighter:
         self._setup_bindings()
 
     def apply_theme(self):
-        """Reaplica los colores del tema actual."""
+        """Reaplica los colores del tema actual al resaltado."""
         self._setup_tags()
         self.highlight()
 
@@ -107,17 +116,18 @@ class SyntaxHighlighter:
         self.text.bind("<<Modified>>", self._on_modified)
 
     def _on_key_release(self, event=None):
-        """Maneja el evento de liberación de tecla."""
+        """Maneja el evento de liberación de tecla para re-resaltar."""
         self.highlight()
 
     def _on_modified(self, event=None):
-        """Maneja el evento de modificación del texto."""
+        """Maneja el evento de modificación del texto para re-resaltar."""
         if self.text.edit_modified():
             self.highlight()
             self.text.edit_modified(False)
 
     def highlight(self):
         """Aplica el resaltado de sintaxis a todo el documento."""
+        # Limpiar todas las etiquetas existentes
         self.text.tag_remove("keyword", "1.0", "end")
         self.text.tag_remove("type", "1.0", "end")
         self.text.tag_remove("string", "1.0", "end")
@@ -128,10 +138,12 @@ class SyntaxHighlighter:
         self.text.tag_remove("operator", "1.0", "end")
         self.text.tag_remove("bracket", "1.0", "end")
 
+        # Obtener el contenido completo del editor
         content = self.text.get("1.0", "end-1c")
         if not content:
             return
 
+        # Aplicar cada tipo de resaltado en orden
         self._highlight_comments(content)
         self._highlight_strings(content)
         self._highlight_preprocessor(content)
@@ -143,7 +155,7 @@ class SyntaxHighlighter:
         self._highlight_brackets(content)
 
     def _highlight_comments(self, content):
-        """Resalta comentarios de línea y bloque."""
+        """Resalta comentarios de línea (//) y de bloque (/* ... */)."""
         # Comentarios de bloque /* ... */
         pattern = r"/\*.*?\*/"
         for match in re.finditer(pattern, content, re.DOTALL):
@@ -159,7 +171,7 @@ class SyntaxHighlighter:
             self.text.tag_add("comment", start, end)
 
     def _highlight_strings(self, content):
-        """Resalta cadenas de texto."""
+        """Resalta cadenas de texto con comillas dobles y simples."""
         # Cadenas con comillas dobles
         pattern = r'"(?:\\.|[^"\\])*"'
         for match in re.finditer(pattern, content):
@@ -175,7 +187,7 @@ class SyntaxHighlighter:
             self.text.tag_add("string", start, end)
 
     def _highlight_preprocessor(self, content):
-        """Resalta directivas de preprocesador."""
+        """Resalta directivas de preprocesador (#include, #define, etc.)."""
         pattern = r"^\s*(#\w+)"
         for match in re.finditer(pattern, content, re.MULTILINE):
             start = f"1.0+{match.start(1)}c"
@@ -191,7 +203,7 @@ class SyntaxHighlighter:
             self.text.tag_add("keyword", start, end)
 
     def _highlight_types(self, content):
-        """Resalta tipos de datos."""
+        """Resalta tipos de datos de C++ y la STL."""
         pattern = r"\b(" + "|".join(re.escape(t) for t in self.TYPES) + r")\b"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start()}c"
@@ -199,7 +211,7 @@ class SyntaxHighlighter:
             self.text.tag_add("type", start, end)
 
     def _highlight_numbers(self, content):
-        """Resalta números."""
+        """Resalta números (decimales, hexadecimales y con sufijos)."""
         pattern = r"\b(0x[0-9a-fA-F]+|\d+\.?\d*[fFlLuU]*)\b"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start()}c"
@@ -207,7 +219,7 @@ class SyntaxHighlighter:
             self.text.tag_add("number", start, end)
 
     def _highlight_functions(self, content):
-        """Resalta llamadas a funciones."""
+        """Resalta llamadas a funciones (identificador seguido de paréntesis)."""
         pattern = r"\b([a-zA-Z_]\w*)\s*(?=\()"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start(1)}c"
@@ -215,7 +227,7 @@ class SyntaxHighlighter:
             self.text.tag_add("function", start, end)
 
     def _highlight_operators(self, content):
-        """Resalta operadores."""
+        """Resalta operadores compuestos de C++."""
         pattern = r"(==|!=|<=|>=|&&|\|\||<<|>>|\+\+|--|->|::|\+=|-=|\*=|/=|%=|&=|\|=|\^=)"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start()}c"
@@ -223,7 +235,7 @@ class SyntaxHighlighter:
             self.text.tag_add("operator", start, end)
 
     def _highlight_brackets(self, content):
-        """Resalta corchetes y paréntesis."""
+        """Resalta corchetes, llaves y paréntesis."""
         pattern = r"[{}()\[\]]"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start()}c"

@@ -1,5 +1,16 @@
 """
 Ventana principal de MeriCode C++ - interfaz gráfica completa.
+
+Este módulo contiene la ventana principal del IDE con todas sus
+funcionalidades:
+- Editor de código con resaltado de sintaxis y números de línea.
+- Explorador de archivos con archivos abiertos y árbol de directorios.
+- Barra de herramientas con acciones de archivo, proyecto y compilación.
+- Menús completos (Archivo, Proyecto, Editar, Ver, Compilar, Ejecutar, Depurar, Ayuda).
+- Consola de salida con pestañas para salida, errores y depuración.
+- Gestión de proyectos .cmj y creación de clases.
+- Compilación, ejecución y depuración de programas C++.
+- Temas claro y oscuro.
 """
 
 import os
@@ -33,7 +44,14 @@ else:
 
 
 class CodeEditor(tk.Frame):
-    """Editor de código con resaltado de sintaxis y números de línea."""
+    """Editor de código con resaltado de sintaxis y números de línea.
+
+    Esta clase representa una pestaña individual del editor de código.
+    Incluye un widget Text de Tkinter con resaltado de sintaxis C++,
+    números de línea sincronizados, barras de desplazamiento horizontal
+    y vertical, autocompletado de brackets y comillas, indentación
+    automática y resaltado de la línea actual del cursor.
+    """
 
     def __init__(self, parent, ide, **kwargs):
         super().__init__(parent, **kwargs)
@@ -295,7 +313,16 @@ class CodeEditor(tk.Frame):
 
 
 class FileExplorer(tk.Frame):
-    """Explorador de archivos lateral con archivos abiertos y proyecto."""
+    """Explorador de archivos lateral con archivos abiertos y proyecto.
+
+    Muestra tres secciones principales:
+    - Proyecto: Nombre y botón para cerrar el proyecto activo.
+    - Archivos abiertos: Lista de pestañas abiertas en el editor.
+    - Árbol de archivos: Explorador de directorios del sistema.
+
+    Incluye botones para navegar hacia arriba, actualizar el árbol,
+    y hacer doble clic para abrir archivos en el editor.
+    """
 
     def __init__(self, parent, ide, **kwargs):
         super().__init__(parent, **kwargs)
@@ -561,7 +588,19 @@ class FileExplorer(tk.Frame):
 
 
 class MainWindow(tk.Tk):
-    """Ventana principal de MeriCode C++."""
+    """Ventana principal de MeriCode C++.
+
+    Esta es la clase principal que orquesta toda la aplicación.
+    Configura la ventana, los estilos, los menús, la barra de
+    herramientas, la barra de estado, y todos los paneles:
+
+    - Explorador de archivos (izquierda).
+    - Editor de código con pestañas (centro).
+    - Consola de salida (abajo).
+
+    También maneja la gestión de archivos, proyectos, compilación,
+    ejecución, depuración, temas y atajos de teclado.
+    """
 
     def __init__(self):
         super().__init__()
@@ -724,6 +763,20 @@ class MainWindow(tk.Tk):
         if hasattr(self, "console_toggle_btn"):
             self.console_toggle_btn.config(
                 text="▤ OCULTAR" if self._toggle_console_var.get() else "▤ MOSTRAR")
+        # Mostrar u ocultar los controles de consola en la parte superior
+        # según si la consola está visible o no
+        if hasattr(self, "top_console_controls"):
+            if self._toggle_console_var.get():
+                # Consola visible: ocultar controles superiores
+                self.top_console_controls.pack_forget()
+            else:
+                # Consola oculta: mostrar controles superiores
+                self.top_console_controls.pack(side="left", padx=2, pady=3)
+
+    def _sync_auto_scroll(self):
+        """Sincroniza el auto scroll de la barra superior con la consola."""
+        if hasattr(self, "console") and hasattr(self.console, "_auto_scroll_var"):
+            self.console._auto_scroll_var.set(self.top_auto_scroll_var.get())
 
     def _toggle_console(self):
         """Muestra u oculta la consola."""
@@ -744,6 +797,10 @@ class MainWindow(tk.Tk):
         """Alterna la visibilidad de la consola."""
         self._toggle_console_var.set(not self._toggle_console_var.get())
         self._toggle_console()
+        # Sincronizar el estado del auto-scroll de la barra superior
+        # con el de la consola al mostrar/ocultar
+        if self._toggle_console_var.get() and hasattr(self, "console"):
+            self.console._auto_scroll_var.set(self.top_auto_scroll_var.get())
 
     def _toggle_explorer(self):
         """Muestra u oculta el explorador de archivos."""
@@ -907,6 +964,20 @@ class MainWindow(tk.Tk):
             command=self.toggle_console)
         self.console_toggle_btn.pack(side="left", padx=2, pady=3)
 
+        # Controles de consola en la parte superior (visibles solo cuando la consola está oculta)
+        self.top_console_controls = ttk.Frame(toolbar, style="Toolbar.TFrame")
+        # Inicialmente la consola está visible, así que estos controles están ocultos
+
+        # Botón para limpiar la consola
+        ttk.Button(self.top_console_controls, text="🗑 Limpiar", width=10,
+                   command=self.console.clear_all).pack(side="left", padx=2)
+
+        # Checkbox de auto-scroll sincronizado con la consola
+        self.top_auto_scroll_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(self.top_console_controls, text="Auto scroll",
+                        variable=self.top_auto_scroll_var,
+                        command=self._sync_auto_scroll).pack(side="left", padx=2)
+
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
 
         # Botones de archivo
@@ -956,6 +1027,10 @@ class MainWindow(tk.Tk):
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
         ttk.Button(toolbar, text="🔍 Buscar", width=8,
                    command=self.show_search).pack(side="left", padx=2, pady=3)
+
+        # Configurar visibilidad inicial de los controles de consola superiores
+        # (ocultos porque la consola está visible al inicio)
+        self._update_panel_buttons()
 
     def _create_statusbar(self):
         """Crea la barra de estado."""
