@@ -33,6 +33,7 @@ if __package__ is None or __package__ == "":
     from ide.compiler import Compiler
     from ide.theme import ThemeManager
     from ide.project import ProjectManager
+    from ide.uml_editor import UMLEditor
 else:
     from .syntax_highlighter import SyntaxHighlighter
     from .editor import LineNumbers
@@ -41,6 +42,7 @@ else:
     from .compiler import Compiler
     from .theme import ThemeManager
     from .project import ProjectManager
+    from .uml_editor import UMLEditor
 
 
 class CodeEditor(tk.Frame):
@@ -713,6 +715,14 @@ class MainWindow(tk.Tk):
         # Aplicar a la consola
         self.console.apply_theme()
 
+        # Aplicar al editor UML
+        if hasattr(self, "uml_editor") and self.uml_editor is not None:
+            try:
+                if self.uml_editor.winfo_exists():
+                    self.uml_editor.apply_theme()
+            except tk.TclError:
+                pass
+
         # Actualizar título
         self.update_title()
 
@@ -951,6 +961,22 @@ class MainWindow(tk.Tk):
                                command=self.show_debug_settings)
         menubar.add_cascade(label="Depurar", menu=debug_menu)
 
+        # Menú UML
+        uml_menu = tk.Menu(menubar, tearoff=False)
+        uml_menu.add_command(label="Nuevo diagrama UML",
+                             command=self.open_uml_editor)
+        uml_menu.add_separator()
+        uml_menu.add_command(label="Guardar XML",
+                             command=self.save_uml_xml)
+        uml_menu.add_command(label="Abrir XML...",
+                             command=self.open_uml_xml)
+        uml_menu.add_separator()
+        uml_menu.add_command(label="Exportar a PDF...",
+                             command=self.export_uml_pdf)
+        uml_menu.add_command(label="Exportar a PNG...",
+                             command=self.export_uml_png)
+        menubar.add_cascade(label="UML", menu=uml_menu)
+
         # Menú Ayuda
         help_menu = tk.Menu(menubar, tearoff=False)
         help_menu.add_command(label="Acerca de", command=self.show_about)
@@ -1034,6 +1060,11 @@ class MainWindow(tk.Tk):
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
         ttk.Button(toolbar, text="🌓 Tema", width=7,
                    command=self.toggle_theme).pack(side="left", padx=2, pady=3)
+
+        # Botón UML
+        ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
+        ttk.Button(toolbar, text="📐 UML", width=8,
+                   command=self.open_uml_editor).pack(side="left", padx=2, pady=3)
 
         # Botón buscar
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
@@ -1354,6 +1385,11 @@ class MainWindow(tk.Tk):
         if not self.current_editor:
             return
 
+        # Si es el editor UML, guardar como XML
+        if hasattr(self, "uml_editor") and self.current_editor == self.uml_editor:
+            self.save_uml_xml()
+            return
+
         if self.current_editor.file_path:
             self._save_to_path(self.current_editor.file_path)
         else:
@@ -1372,6 +1408,11 @@ class MainWindow(tk.Tk):
     def save_file_as(self):
         """Guarda el archivo actual con un nombre nuevo."""
         if not self.current_editor:
+            return
+
+        # Si es el editor UML, guardar como XML
+        if hasattr(self, "uml_editor") and self.current_editor == self.uml_editor:
+            self.save_uml_xml()
             return
 
         file_path = filedialog.asksaveasfilename(
@@ -1418,6 +1459,27 @@ class MainWindow(tk.Tk):
         """
         if not editor:
             return False
+
+        # Si es el editor UML, cerrar sin verificar modificación
+        if hasattr(self, "uml_editor") and editor == self.uml_editor:
+            self.notebook.forget(editor)
+            editor.destroy()
+            self.uml_editor = None
+            # Actualizar editor actual
+            if self.notebook.tabs():
+                current_tab = self.notebook.select()
+                for ed in self.open_files.values():
+                    if str(ed) == current_tab:
+                        self.current_editor = ed
+                        break
+            else:
+                self.current_editor = None
+                if create_new_if_empty:
+                    self.new_file()
+            self.update_title()
+            self.update_cursor_position()
+            self.file_explorer.refresh_open_files()
+            return True
 
         if editor.is_modified():
             result = messagebox.askyesnocancel(
@@ -1498,6 +1560,17 @@ class MainWindow(tk.Tk):
         """Actualiza el editor actual al cambiar de pestaña."""
         try:
             current_tab = self.notebook.select()
+            # Verificar si es el editor UML
+            if hasattr(self, "uml_editor") and self.uml_editor is not None:
+                try:
+                    if str(self.uml_editor) == current_tab:
+                        self.current_editor = self.uml_editor
+                        self.update_title()
+                        self.update_cursor_position()
+                        self.file_explorer.refresh_open_files()
+                        return
+                except tk.TclError:
+                    pass
             for file_id, editor in self.open_files.items():
                 if str(editor) == current_tab:
                     self.current_editor = editor
@@ -1511,6 +1584,9 @@ class MainWindow(tk.Tk):
     def _editor_action(self, action):
         """Ejecuta una acción de edición en el editor actual."""
         if not self.current_editor:
+            return
+        # Si es el editor UML, no ejecutar acciones de texto
+        if hasattr(self, "uml_editor") and self.current_editor == self.uml_editor:
             return
         text = self.current_editor.text
         action_map = {
@@ -1789,6 +1865,9 @@ class MainWindow(tk.Tk):
         """Asegura que el archivo actual esté guardado."""
         if not self.current_editor:
             return False
+        # Si es el editor UML, no necesita guardar
+        if hasattr(self, "uml_editor") and self.current_editor == self.uml_editor:
+            return True
         if not self.current_editor.file_path:
             self.save_file_as()
             return self.current_editor.file_path is not None
@@ -1810,11 +1889,17 @@ class MainWindow(tk.Tk):
         """Muestra el diálogo de búsqueda."""
         if not self.current_editor:
             return
+        # Si es el editor UML, no mostrar búsqueda
+        if hasattr(self, "uml_editor") and self.current_editor == self.uml_editor:
+            return
         self.search_dialog = SearchDialog(self, self.current_editor.text)
 
     def show_replace(self):
         """Muestra el diálogo de búsqueda y reemplazo."""
         if not self.current_editor:
+            return
+        # Si es el editor UML, no mostrar búsqueda
+        if hasattr(self, "uml_editor") and self.current_editor == self.uml_editor:
             return
         self.search_dialog = SearchDialog(self, self.current_editor.text)
 
@@ -1822,6 +1907,9 @@ class MainWindow(tk.Tk):
         """Va a una línea específica."""
         import tkinter.simpledialog as simpledialog
         if not self.current_editor:
+            return
+        # Si es el editor UML, no ir a línea
+        if hasattr(self, "uml_editor") and self.current_editor == self.uml_editor:
             return
 
         line = simpledialog.askinteger(
@@ -1839,6 +1927,9 @@ class MainWindow(tk.Tk):
         """Cambia el tamaño de la fuente del editor."""
         if not self.current_editor:
             return
+        # Si es el editor UML, no cambiar fuente
+        if hasattr(self, "uml_editor") and self.current_editor == self.uml_editor:
+            return
         size = self.current_editor.editor_font.cget("size")
         new_size = max(8, min(24, size + delta))
         self.current_editor.editor_font.configure(size=new_size)
@@ -1847,6 +1938,9 @@ class MainWindow(tk.Tk):
     def reset_font_size(self):
         """Restablece el tamaño de fuente."""
         if not self.current_editor:
+            return
+        # Si es el editor UML, no cambiar fuente
+        if hasattr(self, "uml_editor") and self.current_editor == self.uml_editor:
             return
         self.current_editor.editor_font.configure(size=11)
         self.current_editor.line_numbers._font.configure(size=11)
@@ -1866,8 +1960,13 @@ class MainWindow(tk.Tk):
         if self.current_editor:
             tab_title = self.notebook.tab(self.current_editor, "text")
             title = f"{tab_title} - {title}"
-            if self.current_editor.is_modified():
-                title = f"• {title}"
+            # Solo verificar modificación si es un editor de código
+            if hasattr(self.current_editor, "is_modified"):
+                try:
+                    if self.current_editor.is_modified():
+                        title = f"• {title}"
+                except (AttributeError, tk.TclError):
+                    pass
         self.title(title)
 
     def update_status(self, message):
@@ -1879,6 +1978,9 @@ class MainWindow(tk.Tk):
     def update_cursor_position(self):
         """Actualiza la posición del cursor en la barra de estado."""
         if not self.current_editor:
+            return
+        # Si es el editor UML, no actualizar posición de cursor
+        if hasattr(self, "uml_editor") and self.current_editor == self.uml_editor:
             return
         try:
             pos = self.current_editor.text.index("insert")
@@ -1902,6 +2004,71 @@ class MainWindow(tk.Tk):
                 "  En Fedora: sudo dnf install gcc-c++\n"
             )
 
+    # --- Editor UML ---
+
+    def open_uml_editor(self):
+        """Abre el editor de diagramas UML."""
+        # Verificar si ya hay un editor UML abierto
+        if hasattr(self, "uml_editor") and self.uml_editor is not None:
+            try:
+                if self.uml_editor.winfo_exists():
+                    self.notebook.select(self.uml_editor)
+                    self.current_editor = self.uml_editor
+                    return
+            except tk.TclError:
+                pass
+
+        # Crear nuevo editor UML
+        self.uml_editor = UMLEditor(self.notebook, self)
+        self.notebook.add(self.uml_editor, text="📐 Diagrama UML")
+        self.notebook.select(self.uml_editor)
+        self.current_editor = self.uml_editor
+        self.update_status("Editor UML abierto")
+
+    def save_uml_xml(self):
+        """Guarda el diagrama UML actual en XML."""
+        if not hasattr(self, "uml_editor") or self.uml_editor is None:
+            messagebox.showinfo("UML", "Primero abra el editor UML.")
+            return
+        try:
+            if self.uml_editor.winfo_exists():
+                self.uml_editor.save_xml()
+        except tk.TclError:
+            messagebox.showinfo("UML", "Primero abra el editor UML.")
+
+    def open_uml_xml(self):
+        """Abre un diagrama UML desde XML."""
+        if not hasattr(self, "uml_editor") or self.uml_editor is None:
+            self.open_uml_editor()
+        try:
+            if self.uml_editor.winfo_exists():
+                self.uml_editor.open_xml()
+        except tk.TclError:
+            self.open_uml_editor()
+            self.uml_editor.open_xml()
+
+    def export_uml_pdf(self):
+        """Exporta el diagrama UML a PDF."""
+        if not hasattr(self, "uml_editor") or self.uml_editor is None:
+            messagebox.showinfo("UML", "Primero abra el editor UML.")
+            return
+        try:
+            if self.uml_editor.winfo_exists():
+                self.uml_editor.export_pdf()
+        except tk.TclError:
+            messagebox.showinfo("UML", "Primero abra el editor UML.")
+
+    def export_uml_png(self):
+        """Exporta el diagrama UML a PNG."""
+        if not hasattr(self, "uml_editor") or self.uml_editor is None:
+            messagebox.showinfo("UML", "Primero abra el editor UML.")
+            return
+        try:
+            if self.uml_editor.winfo_exists():
+                self.uml_editor.export_png()
+        except tk.TclError:
+            messagebox.showinfo("UML", "Primero abra el editor UML.")
+
     def show_about(self):
         """Muestra información sobre el IDE."""
         messagebox.showinfo(
@@ -1922,7 +2089,9 @@ class MainWindow(tk.Tk):
             "• Proyectos .cmj\n"
             "• Creación de clases .h y .cpp\n"
             "• Temas claro y oscuro\n"
-            "• Buscar y reemplazar",
+            "• Buscar y reemplazar\n"
+            "• Editor de diagramas UML\n"
+            "• Exportar UML a PDF y PNG",
         )
 
     def show_shortcuts(self):
@@ -1944,7 +2113,8 @@ class MainWindow(tk.Tk):
             "• F6: Compilar y ejecutar\n"
             "• F7: Compilar\n"
             "• Shift+F5: Detener\n"
-            "• Ctrl++ / Ctrl+-: Zoom",
+            "• Ctrl++ / Ctrl+-: Zoom\n"
+            "• UML: Editor de diagramas de clases",
         )
 
     def _on_close(self):
