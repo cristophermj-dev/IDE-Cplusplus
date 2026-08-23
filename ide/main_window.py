@@ -1402,10 +1402,22 @@ class MainWindow(tk.Tk):
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar el archivo:\n{e}")
 
-    def close_editor(self, editor):
-        """Cierra un editor específico."""
+    def close_editor(self, editor, create_new_if_empty=True):
+        """Cierra un editor específico.
+
+        Args:
+            editor: El editor (pestaña) a cerrar.
+            create_new_if_empty: Si es True (predeterminado), crea un
+                archivo nuevo automáticamente cuando se cierra la última
+                pestaña. Si es False (usado por "Cerrar todos"), NO crea
+                ninguna pestaña nueva, para poder cerrar todas de una vez.
+
+        Returns:
+            bool: True si el editor se cerró correctamente,
+                  False si el usuario canceló el cierre o el editor no existe.
+        """
         if not editor:
-            return
+            return False
 
         if editor.is_modified():
             result = messagebox.askyesnocancel(
@@ -1413,14 +1425,14 @@ class MainWindow(tk.Tk):
                 "¿Desea guardar los cambios antes de cerrar?",
             )
             if result is None:
-                return
+                return False  # El usuario canceló la operación
             if result:
                 old_editor = self.current_editor
                 self.current_editor = editor
                 self.save_file()
                 self.current_editor = old_editor
                 if editor.is_modified():
-                    return
+                    return False  # No se pudo guardar, no cerrar
 
         self.notebook.forget(editor)
         editor.destroy()
@@ -1443,11 +1455,15 @@ class MainWindow(tk.Tk):
                     break
         else:
             self.current_editor = None
-            self.new_file()
+            # Solo crear una pestaña nueva si estamos cerrando directamente
+            # (no dentro de "Cerrar todos")
+            if create_new_if_empty:
+                self.new_file()
 
         self.update_title()
         self.update_cursor_position()
         self.file_explorer.refresh_open_files()
+        return True
 
     def close_current_tab(self):
         """Cierra la pestaña actual."""
@@ -1456,9 +1472,27 @@ class MainWindow(tk.Tk):
         self.close_editor(self.current_editor)
 
     def close_all_tabs(self):
-        """Cierra todas las pestañas."""
-        while self.notebook.tabs():
-            self.close_current_tab()
+        """Cierra todas las pestañas que el IDE tiene abiertas.
+
+        Se toma una copia de los archivos abiertos ANTES de empezar
+        para garantizar que solo se cierren los que están abiertos en
+        este momento y no se creen pestañas nuevas en el proceso.
+
+        Si el usuario cancela el cierre de alguno con cambios sin
+        guardar, se detiene la operación sin cerrar el resto.
+        """
+        # Copia de seguridad de los abiertos actualmente
+        editors = list(self.open_files.values())
+
+        # Cerrar cada editor sin permitir que se creen pestañas nuevas
+        for editor in editors:
+            if not self.close_editor(editor, create_new_if_empty=False):
+                break  # El usuario canceló; no cerrar las demás
+
+        # Si no quedó ninguna pestaña abierta, crear una vacía para
+        # que el IDE siempre tenga un editor en el que trabajar
+        if not self.open_files and not self.notebook.tabs():
+            self.new_file()
 
     def _on_tab_changed(self, event=None):
         """Actualiza el editor actual al cambiar de pestaña."""
