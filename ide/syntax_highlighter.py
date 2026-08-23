@@ -126,13 +126,22 @@ class SyntaxHighlighter:
 
         # Establecer prioridades de las etiquetas.
         # En Tkinter, cuando dos etiquetas se superponen en un mismo
-        # carácter, la de mayor prioridad es la que se muestra.
-        # Los comentarios, cadenas y preprocesador deben estar por encima
-        # de keywords/tipos/funciones, mientras que las palabras reservadas
-        # deben estar por encima de las llamadas a funciones.
-        self.text.tag_raise("keyword")
+        # carácter, la de mayor prioridad (la última elevada) es la que
+        # se muestra.
+        #
+        # Orden de menor a mayor prioridad:
+        #   funciones < tipos < espacio de nombres < palabras reservadas
+        #   < number/bracket < preprocesador < cadenas < comentarios <
+        #   librerías < clases_usuario
+        #
+        # Esto garantiza que las palabras reservadas (int, float, while,
+        # for, return, etc.) se muestren SIEMPRE en color azul en el código,
+        # mientras que los comentarios y cadenas conservan sus colores.
+        self.text.tag_raise("function")
         self.text.tag_raise("type")
         self.text.tag_raise("namespace")
+        self.text.tag_raise("keyword")
+        self.text.tag_raise("operator")
         self.text.tag_raise("number")
         self.text.tag_raise("bracket")
         self.text.tag_raise("preprocessor")

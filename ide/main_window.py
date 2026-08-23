@@ -748,11 +748,13 @@ class MainWindow(tk.Tk):
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
         self.vertical_paned.add(self.notebook, weight=3)
 
-        # Panel de consola (abajo) - redimensionable con el mouse
+        # Panel de consola (abajo) - se crea pero se mantiene oculto
         self.console = ConsolePanel(self.vertical_paned, self.theme_manager)
-        self.vertical_paned.add(self.console, weight=1)
+        # La consola NO se añade al layout inicialmente.
+        # Solo se muestra automáticamente cuando el programa se ejecuta
+        # o cuando hay errores de compilación que el estudiante debe ver.
 
-        self._toggle_console_var = tk.BooleanVar(value=True)
+        self._toggle_console_var = tk.BooleanVar(value=False)
         self._toggle_explorer_var = tk.BooleanVar(value=True)
 
     def _update_panel_buttons(self):
@@ -801,6 +803,15 @@ class MainWindow(tk.Tk):
         # con el de la consola al mostrar/ocultar
         if self._toggle_console_var.get() and hasattr(self, "console"):
             self.console._auto_scroll_var.set(self.top_auto_scroll_var.get())
+
+    def show_console(self):
+        """Muestra la consola automáticamente.
+
+        Se utiliza cuando el programa se ejecuta o cuando la
+        compilación produce errores que el estudiante debe ver.
+        """
+        self._toggle_console_var.set(True)
+        self._toggle_console()
 
     def _toggle_explorer(self):
         """Muestra u oculta el explorador de archivos."""
@@ -966,7 +977,8 @@ class MainWindow(tk.Tk):
 
         # Controles de consola en la parte superior (visibles solo cuando la consola está oculta)
         self.top_console_controls = ttk.Frame(toolbar, style="Toolbar.TFrame")
-        # Inicialmente la consola está visible, así que estos controles están ocultos
+        # Inicialmente la consola está oculta, así que estos controles se mostrarán
+        # mediante _update_panel_buttons() al final de este método.
 
         # Botón para limpiar la consola
         ttk.Button(self.top_console_controls, text="🗑 Limpiar", width=10,
@@ -1029,7 +1041,7 @@ class MainWindow(tk.Tk):
                    command=self.show_search).pack(side="left", padx=2, pady=3)
 
         # Configurar visibilidad inicial de los controles de consola superiores
-        # (ocultos porque la consola está visible al inicio)
+        # (visibles porque la consola está oculta al inicio)
         self._update_panel_buttons()
 
     def _create_statusbar(self):
@@ -1512,7 +1524,9 @@ class MainWindow(tk.Tk):
             if code == 0:
                 self.update_status("Compilación exitosa")
             else:
+                # Mostrar la consola para que el estudiante vea los errores
                 self.update_status("Error de compilación")
+                self.show_console()
                 self.console.show_error_tab()
 
         self.compiler.compile_source(
@@ -1531,6 +1545,9 @@ class MainWindow(tk.Tk):
         if self.compiler.is_busy():
             messagebox.showwarning("Ocupado", "Ya hay un proceso en ejecución.")
             return
+
+        # Mostrar la consola al ejecutar el programa
+        self.show_console()
 
         if self.current_editor.file_path:
             source_file = self.current_editor.file_path
@@ -1602,6 +1619,8 @@ class MainWindow(tk.Tk):
         self.build_status_label.config(text="")
         if code == 0:
             if self.current_editor and self.current_editor.file_path:
+                # Mostrar la consola al comenzar la ejecución
+                self.show_console()
                 source_file = self.current_editor.file_path
                 base = os.path.splitext(source_file)[0]
                 executable = base + (".exe" if os.name == "nt" else "")
@@ -1612,6 +1631,11 @@ class MainWindow(tk.Tk):
                     on_output=self._console_output,
                     on_done=self._on_program_done,
                 )
+        else:
+            # Mostrar la consola con los errores de compilación
+            self.update_status("Error de compilación")
+            self.show_console()
+            self.console.show_error_tab()
 
     def debug_program(self):
         """Depura el programa actual con GDB."""
@@ -1656,11 +1680,15 @@ class MainWindow(tk.Tk):
         if code == 0:
             self._start_debug(executable)
         else:
+            # Mostrar la consola con los errores de compilación
+            self.show_console()
             self.console.show_error_tab()
             self.update_status("Error de compilación para depuración")
 
     def _start_debug(self, executable):
         """Inicia la sesión de depuración."""
+        # Mostrar la consola al depurar
+        self.show_console()
         self.console.clear_debug()
         self.console.show_debug_tab()
         self.console.debug(f"=== Sesión de depuración ===\n")

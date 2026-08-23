@@ -28,6 +28,7 @@ Un IDE completo para programar en C++ desarrollado en **Python** con **Tkinter**
 - ⌨️ **Argumentos de línea de comandos**
 - ⏹ **Detener** procesos en ejecución
 - 📟 **Consola integrada** con auto-scroll
+- 🚀 **Consola oculta hasta ejecutar**: la consola solo aparece automáticamente cuando el programa se ejecuta o cuando hay errores de compilación, manteniendo la interfaz limpia mientras programas
 
 ### Depuración
 - 🐛 **Depuración con GDB** incluida
