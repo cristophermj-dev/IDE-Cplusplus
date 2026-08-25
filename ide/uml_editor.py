@@ -453,7 +453,9 @@ class ClassDialog(tk.Toplevel):
     def __init__(self, parent, title="Clase UML", uml_class=None):
         super().__init__(parent)
         self.title(title)
-        self.geometry("500x450")
+        self.geometry("560x600")
+        self.minsize(520, 540)
+        self.resizable(True, True)
         self.transient(parent)
         self.grab_set()
 
@@ -686,16 +688,26 @@ class RelationDialog(tk.Toplevel):
                  class_names=None):
         super().__init__(parent)
         self.title(title)
-        self.resizable(False, False)
+        self.geometry("480x300")
+        self.minsize(440, 260)
+        self.resizable(True, True)
         self.transient(parent)
         self.grab_set()
 
         self.result = None
         self.class_names = class_names or []
 
+        # Mostrar la etiqueta legible del tipo de relación
+        if relation is not None:
+            initial_type = UMLRelation.TYPE_LABELS.get(
+                relation.rel_type,
+                UMLRelation.TYPE_LABELS[UMLRelation.ASSOCIATION],
+            )
+        else:
+            initial_type = UMLRelation.TYPE_LABELS[UMLRelation.ASSOCIATION]
+
         # Variables
-        self.type_var = tk.StringVar(
-            value=relation.rel_type if relation else UMLRelation.ASSOCIATION)
+        self.type_var = tk.StringVar(value=initial_type)
         self.label_var = tk.StringVar(value=relation.label if relation else "")
         self.source_mult_var = tk.StringVar(
             value=relation.source_multiplicity if relation else "")
@@ -715,7 +727,7 @@ class RelationDialog(tk.Toplevel):
             row=0, column=0, sticky="w", pady=3)
         type_combo = ttk.Combobox(frame, textvariable=self.type_var,
                                   state="readonly", width=20)
-        type_combo["values"] = list(UMLRelation.TYPE_LABELS.keys())
+        type_combo["values"] = list(UMLRelation.TYPE_LABELS.values())
         type_combo.grid(row=0, column=1, sticky="ew", pady=3, padx=(5, 0))
 
         # Etiqueta
@@ -746,10 +758,14 @@ class RelationDialog(tk.Toplevel):
 
     def _on_accept(self):
         """Acepta el diálogo."""
+        # Convertir la etiqueta legible al valor interno del tipo
+        label_to_key = {v: k for k, v in UMLRelation.TYPE_LABELS.items()}
+        rel_type = label_to_key.get(self.type_var.get(), UMLRelation.ASSOCIATION)
+
         self.result = UMLRelation(
             source_id=0,  # Se actualizará después
             target_id=0,
-            rel_type=self.type_var.get(),
+            rel_type=rel_type,
             label=self.label_var.get().strip(),
             source_multiplicity=self.source_mult_var.get().strip(),
             target_multiplicity=self.target_mult_var.get().strip(),
@@ -893,6 +909,14 @@ class UMLEditor(tk.Frame):
 
         class_id = self.next_class_id
         self.next_class_id += 1
+
+        # Ubicar la clase en una cuadrícula para que las clases nuevas no
+        # queden superpuestas y puedan seleccionarse al crear relaciones.
+        col = class_id % 3
+        row = (class_id // 3) % 3
+        uml_class.x = 50 + col * 220
+        uml_class.y = 50 + row * 200
+
         self.classes[class_id] = uml_class
         self.selected_class_id = class_id
         self.redraw()

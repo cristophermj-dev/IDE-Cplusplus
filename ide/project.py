@@ -160,16 +160,19 @@ class ProjectManager:
         Returns:
             Project: El proyecto creado.
         """
-        # Crear el directorio del proyecto
+        # Crear el directorio del proyecto y su estructura interna
         project_dir = os.path.join(directory, name)
-        os.makedirs(project_dir, exist_ok=True)
+        src_dir = os.path.join(project_dir, "src")
+        headers_dir = os.path.join(project_dir, "headers")
+        os.makedirs(src_dir, exist_ok=True)
+        os.makedirs(headers_dir, exist_ok=True)
 
         # Crear el objeto Project y guardarlo
         project = Project(name=name, path=project_dir)
         project_file = project.save()
 
-        # Crear el archivo principal main.cpp si no existe
-        main_cpp = os.path.join(project_dir, "main.cpp")
+        # Crear el archivo principal main.cpp si no existe (en src/)
+        main_cpp = os.path.join(src_dir, "main.cpp")
         if not os.path.exists(main_cpp):
             with open(main_cpp, "w", encoding="utf-8") as f:
                 f.write(
@@ -236,8 +239,16 @@ class ProjectManager:
             return None
 
         project_dir = self.current_project.path
-        header_path = os.path.join(project_dir, f"{class_name}.h")
-        source_path = os.path.join(project_dir, f"{class_name}.cpp")
+        headers_dir = os.path.join(project_dir, "headers")
+        src_dir = os.path.join(project_dir, "src")
+
+        # Asegurar la estructura src/headers (los proyectos antiguos
+        # pueden no tenerla todavía).
+        os.makedirs(headers_dir, exist_ok=True)
+        os.makedirs(src_dir, exist_ok=True)
+
+        header_path = os.path.join(headers_dir, f"{class_name}.h")
+        source_path = os.path.join(src_dir, f"{class_name}.cpp")
 
         # Guardia de inclusión para el archivo .h
         guard = class_name.upper() + "_H"
@@ -260,7 +271,7 @@ class ProjectManager:
 
         # Contenido del archivo fuente .cpp
         source_content = (
-            f'#include "{class_name}.h"\n'
+            f'#include "../headers/{class_name}.h"\n'
             f'#include <iostream>\n'
             f'\n'
             f'using namespace std;\n'

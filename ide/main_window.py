@@ -767,7 +767,8 @@ class MainWindow(tk.Tk):
         # Notebook para los archivos abiertos
         self.notebook = ttk.Notebook(self.vertical_paned)
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
-        self.vertical_paned.add(self.notebook, weight=3)
+        # Se da más peso al editor para que la consola ocupe menos altura.
+        self.vertical_paned.add(self.notebook, weight=6)
 
         # Panel de consola (abajo) - se crea pero se mantiene oculto
         self.console = ConsolePanel(self.vertical_paned, self.theme_manager)
@@ -1191,8 +1192,10 @@ class MainWindow(tk.Tk):
             self.file_explorer.update_project_display()
             self.update_status(f"Proyecto creado: {project.name}")
 
-            # Abrir main.cpp
-            main_cpp = os.path.join(project.path, "main.cpp")
+            # Abrir main.cpp (en src/ en los proyectos nuevos)
+            main_cpp = os.path.join(project.path, "src", "main.cpp")
+            if not os.path.exists(main_cpp):
+                main_cpp = os.path.join(project.path, "main.cpp")
             if os.path.exists(main_cpp):
                 self.open_file_path(main_cpp)
 
@@ -1219,8 +1222,10 @@ class MainWindow(tk.Tk):
             self.file_explorer.update_project_display()
             self.update_status(f"Proyecto abierto: {project.name}")
 
-            # Abrir main.cpp si existe
-            main_cpp = os.path.join(project.path, "main.cpp")
+            # Abrir main.cpp si existe (en src/ en los proyectos nuevos)
+            main_cpp = os.path.join(project.path, "src", "main.cpp")
+            if not os.path.exists(main_cpp):
+                main_cpp = os.path.join(project.path, "main.cpp")
             if os.path.exists(main_cpp):
                 self.open_file_path(main_cpp)
 
@@ -1607,8 +1612,10 @@ class MainWindow(tk.Tk):
             self.file_explorer.update_project_display()
             self.update_title()
 
-            # Abrir main.cpp si existe.
-            main_cpp = os.path.join(project.path, "main.cpp")
+            # Abrir main.cpp si existe (en src/ en los proyectos nuevos).
+            main_cpp = os.path.join(project.path, "src", "main.cpp")
+            if not os.path.exists(main_cpp):
+                main_cpp = os.path.join(project.path, "main.cpp")
             if os.path.exists(main_cpp):
                 self.open_file_path(main_cpp)
 
