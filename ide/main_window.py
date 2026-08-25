@@ -767,11 +767,14 @@ class MainWindow(tk.Tk):
         # Notebook para los archivos abiertos
         self.notebook = ttk.Notebook(self.vertical_paned)
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
-        # Se da más peso al editor para que la consola ocupe menos altura.
-        self.vertical_paned.add(self.notebook, weight=6)
+        self.vertical_paned.add(self.notebook, weight=3)
 
-        # Panel de consola (abajo) - se crea pero se mantiene oculto
-        self.console = ConsolePanel(self.vertical_paned, self.theme_manager)
+        # Panel de consola (abajo) - se crea pero se mantiene oculto.
+        # Se envuelve en un contenedor para limitar su ancho horizontal.
+        self.console_container = ttk.Frame(self.vertical_paned)
+        self.console = ConsolePanel(self.console_container, self.theme_manager)
+        self.console.place(relx=0.5, rely=0.0, anchor="n",
+                           relwidth=0.75, relheight=1.0)
         # La consola NO se añade al layout inicialmente.
         # Solo se muestra automáticamente cuando el programa se ejecuta
         # o cuando hay errores de compilación que el estudiante debe ver.
@@ -807,12 +810,12 @@ class MainWindow(tk.Tk):
         if self._toggle_console_var.get():
             # Verificar si ya está en el PanedWindow antes de añadirlo
             try:
-                self.vertical_paned.pane(self.console)
+                self.vertical_paned.pane(self.console_container)
             except tk.TclError:
-                self.vertical_paned.add(self.console, weight=1)
+                self.vertical_paned.add(self.console_container, weight=1)
         else:
             try:
-                self.vertical_paned.forget(self.console)
+                self.vertical_paned.forget(self.console_container)
             except tk.TclError:
                 pass
         self._update_panel_buttons()
