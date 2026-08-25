@@ -136,8 +136,8 @@ class CodeEditor(tk.Frame):
         self.text.bind("<Control-S>", lambda e: self.ide.save_file())
         self.text.bind("<Control-o>", lambda e: self.ide.open_file())
         self.text.bind("<Control-O>", lambda e: self.ide.open_file())
-        self.text.bind("<Control-n>", lambda e: self.ide.new_file())
-        self.text.bind("<Control-N>", lambda e: self.ide.new_file())
+        self.text.bind("<Control-n>", lambda e: self.ide.new_file(add_to_project=True))
+        self.text.bind("<Control-N>", lambda e: self.ide.new_file(add_to_project=True))
         self.text.bind("<Control-f>", lambda e: self.ide.show_search())
         self.text.bind("<Control-F>", lambda e: self.ide.show_search())
         self.text.bind("<Control-h>", lambda e: self.ide.show_replace())
@@ -855,7 +855,7 @@ class MainWindow(tk.Tk):
         # Menú Archivo
         file_menu = tk.Menu(menubar, tearoff=False)
         file_menu.add_command(label="Nuevo archivo", accelerator="Ctrl+N",
-                              command=self.new_file)
+                              command=lambda: self.new_file(add_to_project=True))
         file_menu.add_command(label="Abrir archivo...", accelerator="Ctrl+O",
                               command=self.open_file)
         file_menu.add_command(label="Abrir carpeta...",
@@ -1043,7 +1043,7 @@ class MainWindow(tk.Tk):
 
         # Botones de archivo
         ttk.Button(toolbar, text="📄 Nuevo", width=8,
-                   command=self.new_file).pack(side="left", padx=2, pady=3)
+                   command=lambda: self.new_file(add_to_project=True)).pack(side="left", padx=2, pady=3)
         ttk.Button(toolbar, text="📂 Abrir", width=8,
                    command=self.open_file).pack(side="left", padx=2, pady=3)
         ttk.Button(toolbar, text="💾 Guardar", width=8,
@@ -1691,7 +1691,7 @@ class MainWindow(tk.Tk):
         self.update_status("Archivos guardados antes de sincronizar")
         return True
 
-    def new_file(self, content=None):
+    def new_file(self, content=None, add_to_project=False):
         """Crea un nuevo archivo.
 
         Si no se especifica contenido y se crea un archivo .cpp,
@@ -1699,12 +1699,24 @@ class MainWindow(tk.Tk):
         (a menos que forme parte de un proyecto, donde se usa el
         template del proyecto).
 
+        Cuando add_to_project es True y hay un proyecto abierto,
+        el archivo se crea dentro del directorio del proyecto y se
+        registra en la lista de archivos del proyecto (.cmj).
+
         Args:
             content: Contenido inicial opcional para el editor.
+            add_to_project: Si True, al crear el archivo con un
+                proyecto abierto se agrega automáticamente al proyecto.
 
         Returns:
-            CodeEditor: El editor creado.
+            CodeEditor: El editor creado (o None si el usuario canceló
+            la creación en el proyecto).
         """
+        # Al crear un archivo nuevo con un proyecto abierto, agregarlo
+        # directamente al proyecto (crearlo en su directorio).
+        if add_to_project and self.project_manager.has_project():
+            return self._new_project_file()
+
         file_id = self.next_file_id
         self.next_file_id += 1
 
@@ -1740,6 +1752,147 @@ class MainWindow(tk.Tk):
         self.update_cursor_position()
         self.file_explorer.refresh_open_files()
         return editor
+
+    def _new_project_file(self):
+        """Crea un archivo nuevo dentro del directorio del proyecto activo.
+
+        Pide el nombre del archivo (con un nombre sugerido único) y lo
+        crea en el directorio del proyecto, registrándolo en la lista de
+        archivos del proyecto (.cmj).
+
+        Returns:
+            CodeEditor: El editor con el archivo creado, o None si el
+            usuario cancela o el nombre no es válido.
+        """
+        project = self.project_manager.current_project
+        import tkinter.simpledialog as simpledialog
+
+        name = self._suggest_new_filename(project.path)
+        file_name = simpledialog.askstring(
+            "Nuevo archivo en el proyecto",
+            f"Nombre del archivo nuevo\n"
+            f"Se creará dentro de: {project.name}\n"
+            f"(ejemplo: nuevo_archivo.cpp)",
+            initialvalue=name,
+            parent=self,
+        )
+        if not file_name:
+            return None
+        file_name = file_name.strip()
+        if not file_name:
+            messagebox.showwarning(
+                "Advertencia", "El nombre del archivo no puede estar vacío."
+            )
+            return None
+
+        # Asegurar la extensión por defecto si no tiene ninguna.
+        if not os.path.splitext(file_name)[1]:
+            file_name += ".cpp"
+
+        file_path = os.path.abspath(os.path.join(project.path, file_name))
+
+        # Evitar que la ruta se salga del directorio del proyecto.
+        project_dir = os.path.abspath(project.path)
+        try:
+            inside = os.path.commonpath([project_dir, file_path]) == project_dir
+        except ValueError:
+            inside = False
+        if not inside:
+            messagebox.showwarning(
+                "Advertencia",
+                "El archivo debe ubicarse dentro del directorio del proyecto.",
+            )
+            return None
+
+        if os.path.exists(file_path):
+            messagebox.showwarning(
+                "Advertencia", f"El archivo '{file_path}' ya existe."
+            )
+            return None
+
+        # Crear el archivo en disco (vacío).
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write("")
+        except OSError as e:
+            messagebox.showerror(
+                "Error", f"No se pudo crear el archivo:\n{e}"
+            )
+            return None
+
+        # Abrirlo en una pestaña del editor.
+        editor = self.new_file("")
+        editor.file_path = file_path
+        editor.set_modified(False)
+        self.notebook.tab(editor, text=os.path.basename(file_path))
+        self.update_title()
+
+        # Registrar el archivo en el proyecto (lista .cmj).
+        self._register_file_in_project(file_path, notify=True)
+        return editor
+
+    def _suggest_new_filename(self, project_dir):
+        """Devuelve un nombre de archivo .cpp único en el directorio.
+
+        Args:
+            project_dir: Directorio del proyecto.
+
+        Returns:
+            str: Nombre como 'nuevo_archivo.cpp' (o _1, _2... si ya
+            existe).
+        """
+        base = "nuevo_archivo"
+        name = f"{base}.cpp"
+        counter = 1
+        while os.path.exists(os.path.join(project_dir, name)):
+            name = f"{base}_{counter}.cpp"
+            counter += 1
+        return name
+
+    def _register_file_in_project(self, file_path, notify=False):
+        """Registra un archivo en el proyecto activo si aún no está.
+
+        Si el archivo pertenece al directorio del proyecto abierto y no
+        figura en su lista de archivos, lo agrega (reescanea el directorio
+        y guarda el .cmj).
+
+        Args:
+            file_path: Ruta del archivo creado o guardado.
+            notify: True para informar en consola y barra de estado.
+
+        Returns:
+            bool: True si el archivo fue agregado al proyecto.
+        """
+        if not self.project_manager.has_project():
+            return False
+
+        project = self.project_manager.current_project
+        project_dir = os.path.abspath(project.path)
+        abs_path = os.path.abspath(file_path)
+
+        # Debe estar dentro del directorio del proyecto.
+        try:
+            inside = os.path.commonpath([project_dir, abs_path]) == project_dir
+        except ValueError:
+            inside = False
+        if not inside:
+            return False
+
+        # Si ya está registrado, no hay nada que hacer.
+        known = {os.path.abspath(f) for f in project.files}
+        if abs_path in known:
+            return False
+
+        project.scan_files()
+        self.project_manager.save_project()
+        self.file_explorer.refresh()
+
+        if notify:
+            self.update_status(f"Archivo agregado al proyecto: {abs_path}")
+            self.console.success(
+                f"✓ Archivo agregado al proyecto: {abs_path}\n"
+            )
+        return True
 
     def open_file(self):
         """Abre un archivo mediante diálogo."""
@@ -1853,6 +2006,10 @@ class MainWindow(tk.Tk):
             self.current_editor.set_modified(False)
             self.update_status(f"Guardado: {file_path}")
             self.file_explorer.refresh_open_files()
+            # Si el archivo pertenece a un proyecto abierto y aún no
+            # estaba registrado (p. ej. un archivo sin título guardado
+            # con "Guardar como"), agregarlo al proyecto.
+            self._register_file_in_project(file_path)
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar el archivo:\n{e}")
 
