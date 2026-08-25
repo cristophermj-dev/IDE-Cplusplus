@@ -7,6 +7,7 @@ Este paquete contiene todos los módulos del IDE:
 - console: Panel de consola con salida, errores y depuración.
 - compiler: Compilación, ejecución y depuración de código C++.
 - project: Gestión de proyectos .cmj.
+- github_sync: Publicación y sincronización con GitHub.
 - theme: Sistema de temas claro/oscuro.
 - syntax_highlighter: Resaltado de sintaxis para C++.
 - search_dialog: Diálogo de buscar y reemplazar.

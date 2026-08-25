@@ -34,6 +34,7 @@ if __package__ is None or __package__ == "":
     from ide.theme import ThemeManager
     from ide.project import ProjectManager
     from ide.uml_editor import UMLEditor
+    from ide.github_sync import GitHubSync, GitHubCredentialsDialog
 else:
     from .syntax_highlighter import SyntaxHighlighter
     from .editor import LineNumbers
@@ -43,6 +44,7 @@ else:
     from .theme import ThemeManager
     from .project import ProjectManager
     from .uml_editor import UMLEditor
+    from .github_sync import GitHubSync, GitHubCredentialsDialog
 
 
 class CodeEditor(tk.Frame):
@@ -617,6 +619,9 @@ class MainWindow(tk.Tk):
         # Gestor de proyectos
         self.project_manager = ProjectManager()
 
+        # Sincronización con GitHub
+        self.github = GitHubSync()
+
         # Configurar estilo
         self._setup_styles()
 
@@ -977,6 +982,22 @@ class MainWindow(tk.Tk):
                              command=self.export_uml_png)
         menubar.add_cascade(label="UML", menu=uml_menu)
 
+        # Menú GitHub
+        github_menu = tk.Menu(menubar, tearoff=False)
+        github_menu.add_command(label="⚙ Configurar GitHub...",
+                                command=self.configure_github)
+        github_menu.add_separator()
+        github_menu.add_command(label="🚀 Publicar proyecto en GitHub...",
+                                command=self.github_publish)
+        github_menu.add_command(label="📤 Commit y sincronizar (push)...",
+                                command=self.github_push)
+        github_menu.add_command(label="📥 Sincronizar (pull)",
+                                command=self.github_pull)
+        github_menu.add_separator()
+        github_menu.add_command(label="🔎 Estado del repositorio",
+                                command=self.github_status)
+        menubar.add_cascade(label="GitHub", menu=github_menu)
+
         # Menú Ayuda
         help_menu = tk.Menu(menubar, tearoff=False)
         help_menu.add_command(label="Acerca de", command=self.show_about)
@@ -1065,6 +1086,11 @@ class MainWindow(tk.Tk):
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
         ttk.Button(toolbar, text="📐 UML", width=8,
                    command=self.open_uml_editor).pack(side="left", padx=2, pady=3)
+
+        # Botón GitHub
+        ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
+        ttk.Button(toolbar, text="🐙 GitHub", width=9,
+                   command=self.github_publish).pack(side="left", padx=2, pady=3)
 
         # Botón buscar
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
@@ -1276,7 +1302,253 @@ class MainWindow(tk.Tk):
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo crear la clase:\n{e}")
 
+    # --- Sincronización con GitHub ---
+
+    def configure_github(self):
+        """Abre el diálogo para configurar el token y el repositorio."""
+
+        def on_saved(cfg):
+            alias = f"@{cfg['owner']} / {cfg['repo']}"
+            self.update_status(f"GitHub configurado: {alias}")
+            self.console.success(
+                f"✓ GitHub configurado: {alias}\n"
+                f"  Repositorio {'privado' if cfg['private'] else 'público'}.\n"
+            )
+
+        GitHubCredentialsDialog(self, self.github, on_saved=on_saved)
+
+    def _github_requires_project(self):
+        """Muestra un aviso y devuelve False si no hay proyecto abierto."""
+        if not self.project_manager.has_project():
+            messagebox.showinfo(
+                "Sin proyecto",
+                "Primero crea o abre un proyecto para poder publicarlo "
+                "o sincronizarlo con GitHub.",
+            )
+            return False
+        return True
+
+    def _github_credentials(self):
+        """Devuelve (token, owner, repo) si están configurados; si no, None.
+
+        Abre el diálogo de configuración cuando faltan credenciales.
+        """
+        cfg = self.github.load_config()
+        token = cfg.get("token", "")
+        owner = cfg.get("owner", "")
+        repo = cfg.get("repo", "")
+        if not token or not owner or not repo:
+            messagebox.showinfo(
+                "Configuración pendiente",
+                "Primero debes configurar tu token y el repositorio "
+                "de GitHub.",
+            )
+            self.configure_github()
+            return None
+        return token, owner, repo
+
+    def _run_github(self, target, action):
+        """Ejecuta una operación de GitHub en un hilo de fondo.
+
+        Args:
+            target: Función que recibe la ruta del proyecto y devuelve
+                    un resumen en texto.
+            action: Descripción corta de la operación (para la UI).
+        """
+        if not self._github_requires_project():
+            return
+        project_path = self.project_manager.current_project.path
+
+        def worker():
+            try:
+                result = target(project_path)
+            except Exception as e:  # noqa: BLE001 - mostrar cualquier error
+                err = str(e)
+                self.after(0, lambda: self._github_done(False, action, err))
+            else:
+                self.after(0, lambda r=result: self._github_done(True, action, r))
+
+        threading.Thread(target=worker, daemon=True).start()
+        self.update_status(f"GitHub: {action} en curso…")
+
+    def _github_done(self, ok, action, text):
+        """Muestra el resultado de una operación de GitHub."""
+        if ok:
+            self.console.success(f"✓ GitHub ({action}):\n{text}\n")
+            self.update_status(f"GitHub: {action} completado")
+            try:
+                self.file_explorer.refresh()
+            except Exception:
+                pass
+            messagebox.showinfo("GitHub", f"{text}")
+        else:
+            self.console.error(f"✗ GitHub ({action}):\n{text}\n")
+            self.update_status("GitHub: error")
+            messagebox.showerror("Error de GitHub", text)
+
+    def github_publish(self):
+        """Publica el proyecto actual en GitHub (primer push)."""
+        if not self._github_requires_project():
+            return
+        if not self.github.has_token():
+            messagebox.showinfo(
+                "Configura GitHub",
+                "Primero configura tu Personal Access Token de GitHub.",
+            )
+            self.configure_github()
+            return
+        if not self._save_all_open_files():
+            return  # El usuario canceló el guardado
+
+        import tkinter.simpledialog as simpledialog
+
+        project = self.project_manager.current_project
+        cfg = self.github.load_config()
+        token = cfg["token"]
+        owner = cfg.get("owner") or simpledialog.askstring(
+            "GitHub", "Dueño (usuario u organización):", parent=self,
+        )
+        if not owner:
+            return
+        repo = cfg.get("repo") or simpledialog.askstring(
+            "GitHub", "Nombre del repositorio:",
+            initialvalue=project.name, parent=self,
+        )
+        if not repo:
+            return
+        private = bool(cfg.get("private", False))
+        message = (
+            simpledialog.askstring(
+                "GitHub",
+                "Mensaje del commit inicial:",
+                initialvalue=f"Publicar proyecto {project.name}",
+                parent=self,
+            )
+            or f"Publicar proyecto {project.name}"
+        )
+
+        def target(path):
+            return self.github.publish(
+                path, token, owner, repo, private, message
+            )
+
+        self._run_github(target, "publicación")
+
+    def github_push(self):
+        """Confirma los cambios y los sube al remoto (commit + push)."""
+        from tkinter import simpledialog
+
+        if not self._save_all_open_files():
+            return  # El usuario canceló el guardado
+
+        creds = self._github_credentials()
+        if not creds:
+            return
+        token, owner, repo = creds
+        message = (
+            simpledialog.askstring(
+                "GitHub",
+                "Mensaje del commit:",
+                initialvalue="Sincronizar cambios desde MeriCode",
+                parent=self,
+            )
+            or "Sincronizar cambios desde MeriCode"
+        )
+
+        def target(path):
+            return self.github.push_changes(path, token, owner, repo, message)
+
+        self._run_github(target, "push")
+
+    def github_pull(self):
+        """Descarga los cambios remotos al proyecto local (pull)."""
+        creds = self._github_credentials()
+        if not creds:
+            return
+        token, owner, repo = creds
+
+        def target(path):
+            return self.github.sync_pull(path, token, owner, repo)
+
+        self._run_github(target, "pull")
+
+    def github_status(self):
+        """Muestra el estado del repositorio git del proyecto."""
+        if not self._github_requires_project():
+            return
+        project_path = self.project_manager.current_project.path
+        try:
+            info = self.github.status(project_path)
+        except Exception as e:  # noqa: BLE001
+            messagebox.showerror("Error de GitHub", str(e))
+            return
+        self.console.info(f"--- Estado del repositorio ---\n{info}\n")
+        self.update_status("Estado del repositorio obtenido")
+        messagebox.showinfo("Estado del repositorio", info)
+
     # --- Gestión de archivos ---
+
+    def _save_all_open_files(self):
+        """Guarda todos los archivos abiertos que tengan modificaciones.
+
+        Devuelve True si todos los archivos modificados se guardaron
+        (o no había nada que guardar), y False si hay archivos nuevos
+        sin ruta o el usuario canceló el guardado.
+
+        Requiere que haya un editor actual activo (self.current_editor).
+        """
+        modified = [
+            ed for ed in self.open_files.values()
+            if ed.is_modified()
+        ]
+        if not modified:
+            return True
+
+        # Separar archivos con y sin ruta.
+        with_path = [ed for ed in modified if ed.file_path]
+        without_path = [ed for ed in modified if not ed.file_path]
+
+        # Guardar los que ya tienen ruta.
+        for ed in with_path:
+            old = self.current_editor
+            self.current_editor = ed
+            self._save_to_path(ed.file_path)
+            self.current_editor = old
+
+        # Los archivos nuevos (sin ruta) requieren "Guardar como".
+        if without_path:
+            messagebox.showinfo(
+                "Archivos nuevos sin guardar",
+                "Hay archivos abiertos sin nombre que no se pueden "
+                "guardar automáticamente. Se abrirá el diálogo 'Guardar "
+                "como' para cada uno antes de sincronizar.",
+            )
+            for ed in without_path:
+                old = self.current_editor
+                self.current_editor = ed
+                self.save_file_as()
+                self.current_editor = old
+                # Si tras "Guardar como" siguió sin ruta, el usuario canceló.
+                if not ed.file_path:
+                    messagebox.showinfo(
+                        "Sincronización cancelada",
+                        "Guardado cancelado. La sincronización con "
+                        "GitHub se detuvo y los cambios no se subieron.",
+                    )
+                    return False
+
+        # Verificar que no quede nada sin guardar.
+        remaining = [ed for ed in self.open_files.values() if ed.is_modified()]
+        if remaining:
+            messagebox.showinfo(
+                "Sincronización cancelada",
+                "Algunos archivos no se pudieron guardar. La "
+                "sincronización con GitHub se detuvo.",
+            )
+            return False
+
+        self.update_status("Archivos guardados antes de sincronizar")
+        return True
 
     def new_file(self, content=None):
         """Crea un nuevo archivo.

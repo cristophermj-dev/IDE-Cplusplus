@@ -35,6 +35,14 @@ Un IDE completo para programar en C++ desarrollado en **Python** con **Tkinter**
 - 🧩 Compilación automática con símbolos de depuración
 - 📍 Información de variables locales y backtrace
 
+### GitHub
+- 🐙 **Configurar GitHub** con tu Personal Access Token (se guarda seguro en `~/.mericode/github.json`)
+- 🚀 **Publicar proyecto**: crea el repositorio remoto en GitHub e inicializa el proyecto (git init, .gitignore, primer commit y push)
+- 📤 **Commit y sincronizar (push)**: guarda los cambios y los sube al remoto
+- 📥 **Sincronizar (pull)**: descarga los cambios remotos al proyecto local
+- 🔎 **Estado del repositorio**: consulta rama, remoto y cambios pendientes
+- 🔒 El token **nunca se guarda en `.git/config`**: se inyecta por variables de entorno en cada operación
+
 ### Interfaz
 - 📁 **Explorador de archivos** lateral con iconos por tipo
 - 🎛 **Barra de herramientas** con botones de compilación, ejecución y depuración
@@ -45,6 +53,8 @@ Un IDE completo para programar en C++ desarrollado en **Python** con **Tkinter**
 ## 📋 Requisitos
 
 - **Python 3.6+** (incluye Tkinter)
+- **git** (necesario para la sincronización con GitHub)
+  - Ubuntu/Debian: `sudo apt install git`
 - **Compilador C++** (g++ recomendado)
   - Ubuntu/Debian: `sudo apt install g++`
   - Fedora: `sudo dnf install gcc-c++`
@@ -90,6 +100,7 @@ MeriCode-Cplusplus/
 │   ├── editor.py             # Editor con números de línea
 │   ├── syntax_highlighter.py # Resaltador de sintaxis C++
 │   ├── compiler.py           # Compilación/ejecución/depuración
+│   ├── github_sync.py        # Publicación y sincronización con GitHub
 │   ├── console.py            # Consola de salida con pestañas
 │   └── search_dialog.py      # Diálogo de buscar y reemplazar
 ```
@@ -102,6 +113,16 @@ MeriCode-Cplusplus/
 4. Prensa **F5** para ejecutar
 5. Usa **F6** para compilar y ejecutar en un solo paso
 6. Usa el botón **🐛 Depurar** para depurar con GDB
+
+### 🐙 Sincronizar con GitHub
+
+1. Crea un **Personal Access Token** en GitHub → *Settings → Developer settings →
+   Personal access tokens* (permisos `repo`).
+2. En el IDE, menú **GitHub → Configurar GitHub...** y pega tu token.
+3. Crea o abre un proyecto y usa **GitHub → Publicar proyecto en GitHub...**
+   (creará el repositorio, el primer commit y lo subirá).
+4. Para guardar cambios posteriores usa **GitHub → Commit y sincronizar (push)**.
+5. Para traer cambios de otro equipo usa **GitHub → Sincronizar (pull)**.
 
 ## 🤝 Contribuir
 
