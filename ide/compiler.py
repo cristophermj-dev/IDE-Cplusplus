@@ -296,13 +296,14 @@ class Compiler:
             self.is_running = False
             self.process = None
 
-    def debug_program(self, executable, source_file, on_output=None, on_done=None):
+    def debug_program(self, executable, source_file, breakpoints=None, on_output=None, on_done=None):
         """
         Inicia una sesión de depuración con GDB.
 
         Args:
             executable: Ruta del ejecutable a depurar.
             source_file: Ruta del archivo fuente para los símbolos.
+            breakpoints: Conjunto/lista de números de línea donde establecer breakpoints.
             on_output: Callback que recibe (línea, etiqueta) de la salida.
             on_done: Callback que recibe el código de retorno al finalizar.
 
@@ -337,17 +338,24 @@ class Compiler:
             temp_dir = tempfile.mkdtemp(prefix="ide_cpp_")
             script_file = os.path.join(temp_dir, "gdb_script.txt")
 
-            # Script de GDB que establece un breakpoint en main y muestra información
-            gdb_script = f"""
-set pagination off
-set confirm off
-file {executable}
-break main
-run
-info locals
-bt
-quit
-"""
+            # Construir los comandos de breakpoint de GDB
+            break_commands = []
+            if breakpoints:
+                for line in sorted(breakpoints):
+                    break_commands.append(f'break "{source_file}":{line}')
+            if not break_commands:
+                break_commands.append("break main")
+
+            # Script de GDB que establece los breakpoints y muestra información
+            script_lines = [
+                "set pagination off",
+                "set confirm off",
+                f'file "{executable}"',
+            ]
+            script_lines.extend(break_commands)
+            script_lines.extend(["run", "info locals", "bt", "quit", ""])
+            gdb_script = "\n".join(script_lines)
+
             with open(script_file, "w") as f:
                 f.write(gdb_script)
 

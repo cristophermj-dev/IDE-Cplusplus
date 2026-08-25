@@ -40,6 +40,9 @@ class LineNumbers(tk.Canvas):
         )
         # Fuente con la que se dibujan los números
         self._font = tkfont.Font(family="Consolas", size=11)
+        # Líneas con breakpoints activos
+        self.breakpoints = set()
+        self.bind("<Button-1>", self._on_breakpoint_click)
         self._update()
 
     def apply_theme(self):
@@ -60,22 +63,30 @@ class LineNumbers(tk.Canvas):
                 f"@0,{self.text_widget.winfo_height()}").split(".")[0])
 
             # Ajustar el ancho del canvas según el número de dígitos
+            # (se reserva margen para el marcador de breakpoint)
             width = max(3, len(str(last_line)))
-            self.configure(width=width * 8 + 10)
+            self.configure(width=width * 8 + 24)
 
             # Obtener la línea actual del cursor para resaltarla
             current_line = int(self.text_widget.index("insert").split(".")[0])
             colors = self.theme_manager.get_colors()
 
             # Dibujar cada número de línea visible
+            line_height = self._line_height()
             for line in range(first_line, last_line + 1):
                 y = self._get_line_y(line)
                 if y is None:
                     continue
 
+                # Marcador de breakpoint en el margen izquierdo
+                if line in self.breakpoints:
+                    cy = y + max(line_height, 1) / 2
+                    self.create_oval(4, cy - 4, 12, cy + 4,
+                                     fill=colors["error"], outline="")
+
                 # La línea actual se dibuja en un color más claro
                 color = colors["fg"] if line == current_line else colors["line_number"]
-                self.create_text(5, y, anchor="nw", text=str(line),
+                self.create_text(16, y, anchor="nw", text=str(line),
                                  fill=color, font=self._font)
         except tk.TclError:
             # Ignorar errores si el widget ya no existe
@@ -98,6 +109,48 @@ class LineNumbers(tk.Canvas):
         except tk.TclError:
             pass
         return None
+
+    def _line_height(self):
+        """Devuelve la altura de una línea del editor en píxeles."""
+        try:
+            info = self.text_widget.dlineinfo("1.0")
+            if info:
+                return info[3]
+        except tk.TclError:
+            pass
+        return self._font.metrics("linespace")
+
+    def _on_breakpoint_click(self, event):
+        """Alterna un breakpoint en la línea sobre la que se hizo clic."""
+        line = self._get_line_at_y(event.y)
+        if line is None:
+            return
+        if line in self.breakpoints:
+            self.breakpoints.discard(line)
+        else:
+            self.breakpoints.add(line)
+        self._update()
+
+    def _get_line_at_y(self, y):
+        """Calcula el número de línea del editor a partir de la coordenada Y."""
+        try:
+            first_line = int(self.text_widget.index("@0,0").split(".")[0])
+            first_y = self._get_line_y(first_line)
+            if first_y is None:
+                return None
+            line_height = self._line_height()
+            if line_height <= 0:
+                line_height = 17
+            delta = y - first_y
+            if delta < 0:
+                return first_line if -delta <= line_height else None
+            line = first_line + int(delta // line_height)
+            last_line = int(self.text_widget.index("end-1c").split(".")[0])
+            if line > last_line:
+                return None
+            return max(1, line)
+        except tk.TclError:
+            return None
 
     def attach(self):
         """Vincula eventos clave para mantener los números sincronizados.

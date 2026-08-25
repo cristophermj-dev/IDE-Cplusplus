@@ -299,6 +299,12 @@ class CodeEditor(tk.Frame):
         self.text.insert("1.0", content)
         self.text.edit_reset()
         self._modified = False
+        # Resaltar el contenido recién cargado
+        self.highlighter.highlight()
+
+    def get_breakpoints(self):
+        """Devuelve el conjunto de líneas con breakpoints del editor."""
+        return self.line_numbers.breakpoints
 
     def is_modified(self):
         """Verifica si el archivo ha sido modificado."""
@@ -2197,7 +2203,7 @@ class MainWindow(tk.Tk):
         extra_flags = ["-g", "-Wall"]
 
         def on_output(line, tag):
-            self.console.output(line)
+            self._console_output(line, tag)
 
         def on_done(code):
             self.build_status_label.config(text="")
@@ -2277,6 +2283,7 @@ class MainWindow(tk.Tk):
 
         source_file = self.current_editor.file_path
         self.console.clear_output()
+        self.console.clear_errors()
         self.console.show_output_tab()
         self.console.output(f"=== Compilando y ejecutando ===\n")
         self.build_status_label.config(text="Compilando...")
@@ -2284,7 +2291,7 @@ class MainWindow(tk.Tk):
         extra_flags = ["-g", "-Wall"]
 
         def on_output(line, tag):
-            self.console.output(line)
+            self._console_output(line, tag)
 
         self.compiler.compile_source(
             source_file,
@@ -2333,6 +2340,13 @@ class MainWindow(tk.Tk):
         base = os.path.splitext(source_file)[0]
         executable = base + (".exe" if os.name == "nt" else "")
 
+        # Recoger los breakpoints marcados en el editor actual
+        breakpoints = (
+            self.current_editor.get_breakpoints()
+            if hasattr(self.current_editor, "get_breakpoints")
+            else set()
+        )
+
         # Verificar si está compilado con -g
         if not os.path.exists(executable):
             result = messagebox.askyesno(
@@ -2349,33 +2363,37 @@ class MainWindow(tk.Tk):
                 source_file,
                 std=self.std_var.get(),
                 extra_flags=["-g", "-Wall", "-O0"],
-                on_output=lambda line, tag: self.console.debug(line),
-                on_done=lambda code: self._start_debug_after_compile(code, executable),
+                on_output=self._debug_output,
+                on_done=lambda code: self._start_debug_after_compile(code, executable, breakpoints),
             )
         else:
-            self._start_debug(executable)
+            self._start_debug(executable, breakpoints)
 
-    def _start_debug_after_compile(self, code, executable):
+    def _start_debug_after_compile(self, code, executable, breakpoints=None):
         """Inicia depuración después de compilar."""
         if code == 0:
-            self._start_debug(executable)
+            self._start_debug(executable, breakpoints)
         else:
             # Mostrar la consola con los errores de compilación
             self.show_console()
             self.console.show_error_tab()
             self.update_status("Error de compilación para depuración")
 
-    def _start_debug(self, executable):
+    def _start_debug(self, executable, breakpoints=None):
         """Inicia la sesión de depuración."""
         # Mostrar la consola al depurar
         self.show_console()
         self.console.clear_debug()
         self.console.show_debug_tab()
         self.console.debug(f"=== Sesión de depuración ===\n")
+        if breakpoints:
+            self.console.debug(
+                "Breakpoints: " + ", ".join(str(b) for b in sorted(breakpoints)) + "\n"
+            )
         self.build_status_label.config(text="Depurando...")
 
         def on_output(line, tag):
-            self.console.debug(line)
+            self._debug_output(line, tag)
 
         def on_done(code):
             self.build_status_label.config(text="")
@@ -2383,6 +2401,7 @@ class MainWindow(tk.Tk):
         self.compiler.debug_program(
             executable,
             self.current_editor.file_path,
+            breakpoints=breakpoints,
             on_output=on_output,
             on_done=on_done,
         )
@@ -2423,8 +2442,20 @@ class MainWindow(tk.Tk):
         )
 
     def _console_output(self, line, tag):
-        """Escribe salida de procesos en la consola."""
-        self.console.output(line)
+        """Escribe la salida de un proceso en la pestaña de consola adecuada."""
+        if tag == "error":
+            self.console.error(line)
+        elif tag == "debug":
+            self.console.debug(line)
+        else:
+            self.console.output(line)
+
+    def _debug_output(self, line, tag):
+        """Escribe la salida de depuración; los errores van a la pestaña de errores."""
+        if tag == "error":
+            self.console.error(line)
+        else:
+            self.console.debug(line)
 
     def _on_program_done(self, code):
         """Maneja la finalización del programa."""
