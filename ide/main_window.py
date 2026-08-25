@@ -32,7 +32,7 @@ if __package__ is None or __package__ == "":
     from ide.search_dialog import SearchDialog
     from ide.compiler import Compiler
     from ide.theme import ThemeManager
-    from ide.project import ProjectManager
+    from ide.project import Project, ProjectManager
     from ide.uml_editor import UMLEditor
     from ide.github_sync import GitHubSync, GitHubCredentialsDialog
 else:
@@ -42,7 +42,7 @@ else:
     from .search_dialog import SearchDialog
     from .compiler import Compiler
     from .theme import ThemeManager
-    from .project import ProjectManager
+    from .project import Project, ProjectManager
     from .uml_editor import UMLEditor
     from .github_sync import GitHubSync, GitHubCredentialsDialog
 
@@ -987,6 +987,8 @@ class MainWindow(tk.Tk):
         github_menu.add_command(label="⚙ Configurar GitHub...",
                                 command=self.configure_github)
         github_menu.add_separator()
+        github_menu.add_command(label="📂 Clonar proyecto desde GitHub...",
+                                command=self.github_clone)
         github_menu.add_command(label="🚀 Publicar proyecto en GitHub...",
                                 command=self.github_publish)
         github_menu.add_command(label="📤 Commit y sincronizar (push)...",
@@ -1089,6 +1091,8 @@ class MainWindow(tk.Tk):
 
         # Botón GitHub
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
+        ttk.Button(toolbar, text="📂 Clonar",
+                   command=self.github_clone).pack(side="left", padx=2, pady=3)
         ttk.Button(toolbar, text="🐙 GitHub", width=9,
                    command=self.github_publish).pack(side="left", padx=2, pady=3)
 
@@ -1485,6 +1489,143 @@ class MainWindow(tk.Tk):
         self.console.info(f"--- Estado del repositorio ---\n{info}\n")
         self.update_status("Estado del repositorio obtenido")
         messagebox.showinfo("Estado del repositorio", info)
+
+    def github_clone(self):
+        """Clona un proyecto de GitHub en el equipo y lo abre en el IDE."""
+        cfg = self.github.load_config()
+        token = cfg.get("token", "")
+        if not token:
+            response = messagebox.askyesno(
+                "GitHub",
+                "No hay un token configurado. Podrás clonar repositorios\n"
+                "públicos sin token, pero los privados requieren uno.\n\n"
+                "¿Quieres continuar sin token?\n"
+                "Elige 'No' para configurar el token.",
+            )
+            if response is None:
+                return
+            if not response:
+                self.configure_github()
+                return
+
+        import tkinter.simpledialog as simpledialog
+
+        owner = simpledialog.askstring(
+            "GitHub",
+            "Dueño (usuario u organización):",
+            initialvalue=cfg.get("owner", ""),
+            parent=self,
+        )
+        if not owner:
+            return
+        repo = simpledialog.askstring(
+            "GitHub",
+            "Nombre del repositorio:",
+            initialvalue=cfg.get("repo", ""),
+            parent=self,
+        )
+        if not repo:
+            return
+
+        dest_dir = filedialog.askdirectory(
+            parent=self,
+            title="Seleccione la carpeta donde clonar el proyecto",
+        )
+        if not dest_dir:
+            return
+
+        target_name = simpledialog.askstring(
+            "GitHub",
+            "Nombre de la carpeta local\n"
+            "(vacío para usar el nombre del repositorio):",
+            initialvalue=repo,
+            parent=self,
+        )
+        target_name = (target_name or "").strip() or repo
+
+        def worker():
+            try:
+                clone_dir = self.github.clone(
+                    dest_dir, token, owner, repo, target_name
+                )
+            except Exception as e:  # noqa: BLE001
+                err = str(e)
+                self.after(
+                    0, lambda: self._github_clone_done(False, err)
+                )
+            else:
+                self.after(
+                    0, lambda d=clone_dir: self._github_clone_done(True, d)
+                )
+
+        threading.Thread(target=worker, daemon=True).start()
+        self.update_status(f"GitHub: clonando {owner}/{repo}…")
+
+    def _github_clone_done(self, ok, info):
+        """Muestra el resultado del clonado y abre el proyecto si fue bien."""
+        if not ok:
+            self.console.error(f"✗ GitHub (clonar):\n{info}\n")
+            self.update_status("GitHub: error al clonar")
+            messagebox.showerror("Error al clonar", info)
+            return
+
+        clone_dir = info
+        self.console.success(f"✓ Proyecto clonado en {clone_dir}\n")
+        self.update_status("GitHub: proyecto clonado")
+        messagebox.showinfo("GitHub", f"Proyecto clonado en:\n{clone_dir}")
+
+        # Abrir el proyecto clonado en el IDE.
+        repo_name = os.path.basename(clone_dir)
+        self._open_cloned_project(clone_dir, repo_name)
+
+    def _open_cloned_project(self, clone_dir, repo_name):
+        """Abre el proyecto clonado (usa su .cmj si existe, o crea uno).
+
+        Args:
+            clone_dir: Directorio raíz del proyecto clonado.
+            repo_name: Nombre del repositorio (para el proyecto .cmj).
+        """
+        try:
+            cmj = self._find_cmj_file(clone_dir)
+            if cmj:
+                project = self.project_manager.open_project(cmj)
+            else:
+                # Crear un proyecto .cmj dentro de la carpeta clonada.
+                project = Project(name=repo_name, path=clone_dir)
+                project_file = project.save()
+                project.scan_files()
+                self.project_manager.current_project = project
+                self.project_manager.project_file = project_file
+
+            self.file_explorer.open_directory(project.path)
+            self.file_explorer.update_project_display()
+            self.update_title()
+
+            # Abrir main.cpp si existe.
+            main_cpp = os.path.join(project.path, "main.cpp")
+            if os.path.exists(main_cpp):
+                self.open_file_path(main_cpp)
+
+            self.console.success(
+                f"✓ Proyecto '{project.name}' abierto desde GitHub\n"
+            )
+        except Exception as e:  # noqa: BLE001
+            messagebox.showerror(
+                "Error", f"No se pudo abrir el proyecto clonado:\n{e}"
+            )
+
+    def _find_cmj_file(self, project_dir):
+        """Busca un archivo .cmj dentro del directorio (evitando .git).
+
+        Returns:
+            str: Ruta del primer archivo .cmj encontrado, o None.
+        """
+        for root, dirs, files in os.walk(project_dir):
+            dirs[:] = [d for d in dirs if d != ".git"]
+            for name in files:
+                if name.endswith(".cmj"):
+                    return os.path.join(root, name)
+        return None
 
     # --- Gestión de archivos ---
 

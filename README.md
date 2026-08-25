@@ -37,6 +37,7 @@ Un IDE completo para programar en C++ desarrollado en **Python** con **Tkinter**
 
 ### GitHub
 - 🐙 **Configurar GitHub** con tu Personal Access Token (se guarda seguro en `~/.mericode/github.json`)
+- 📂 **Clonar proyecto desde GitHub**: descarga un repositorio y lo abre como proyecto en el IDE
 - 🚀 **Publicar proyecto**: crea el repositorio remoto en GitHub e inicializa el proyecto (git init, .gitignore, primer commit y push)
 - 📤 **Commit y sincronizar (push)**: guarda los cambios y los sube al remoto
 - 📥 **Sincronizar (pull)**: descarga los cambios remotos al proyecto local
@@ -119,10 +120,14 @@ MeriCode-Cplusplus/
 1. Crea un **Personal Access Token** en GitHub → *Settings → Developer settings →
    Personal access tokens* (permisos `repo`).
 2. En el IDE, menú **GitHub → Configurar GitHub...** y pega tu token.
-3. Crea o abre un proyecto y usa **GitHub → Publicar proyecto en GitHub...**
-   (creará el repositorio, el primer commit y lo subirá).
-4. Para guardar cambios posteriores usa **GitHub → Commit y sincronizar (push)**.
-5. Para traer cambios de otro equipo usa **GitHub → Sincronizar (pull)**.
+3. **Abrir un proyecto desde GitHub**: menú **GitHub → Clonar proyecto desde GitHub...**
+   (o botón **📂 Clonar**), indica el dueño y el repositorio, elige la carpeta
+   destino y el IDE descargará, abrirá y explorará el proyecto automáticamente.
+4. **Publicar un proyecto**: crea o abre un proyecto y usa
+   **GitHub → Publicar proyecto en GitHub...** (creará el repositorio, el primer
+   commit y lo subirá).
+5. Para guardar cambios posteriores usa **GitHub → Commit y sincronizar (push)**.
+6. Para traer cambios de otro equipo usa **GitHub → Sincronizar (pull)**.
 
 ## 🤝 Contribuir
 

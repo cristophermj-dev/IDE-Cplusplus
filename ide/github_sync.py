@@ -513,6 +513,51 @@ class GitHubSync:
                 "No hay una rama local todavía. Publica el proyecto primero."
             )
         return self.pull(project_path, token, owner, repo, branch)
+
+    def clone(self, parent_dir, token, owner, repo, target_name=None):
+        """Clona un repositorio de GitHub en un directorio local.
+
+        Args:
+            parent_dir: Carpeta donde se creará el proyecto clonado.
+            token: Personal Access Token (para repositorios privados).
+            owner: Usuario/organización dueño del repositorio.
+            repo: Nombre del repositorio.
+            target_name: Nombre de la carpeta local (por defecto, el
+                         nombre del repositorio).
+
+        Returns:
+            str: Ruta absoluta de la carpeta clonada.
+
+        Raises:
+            GitHubError: Si el clonado falla o la carpeta ya existe.
+        """
+        if not owner or not repo:
+            raise GitHubError("Indica el dueño y el nombre del repositorio.")
+
+        if not os.path.isdir(parent_dir):
+            raise GitHubError(
+                f"La carpeta destino no existe: {parent_dir}"
+            )
+
+        target_name = target_name or repo
+        dest = os.path.join(parent_dir, target_name)
+        if os.path.exists(dest):
+            raise GitHubError(
+                f"La carpeta '{dest}' ya existe. Elige otro destino "
+                "o elimínala antes de clonar."
+            )
+
+        url = (
+            f"{GITHUB_HTTPS}/{urllib.parse.quote(owner)}/"
+            f"{urllib.parse.quote(repo)}.git"
+        )
+        env = _auth_env(token) if token else None
+        _run(
+            ["git", "clone", url, dest],
+            cwd=parent_dir,
+            env=env,
+        )
+        return os.path.abspath(dest)
 # ----------------------------------------------------------------------
 # Diálogo de configuración de GitHub (interfaz gráfica)
 # ----------------------------------------------------------------------
