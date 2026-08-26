@@ -271,7 +271,7 @@ class ProjectManager:
 
         # Contenido del archivo fuente .cpp
         source_content = (
-            f'#include "../headers/{class_name}.h"\n'
+            f'#include "{class_name}.h"\n'
             f'#include <iostream>\n'
             f'\n'
             f'using namespace std;\n'

@@ -96,17 +96,22 @@ class Compiler:
         }
 
     def compile_source(self, source_file, output_file=None, std="c++17",
-                       extra_flags=None, on_output=None, on_done=None):
+                       extra_flags=None, on_output=None, on_done=None,
+                       source_files=None, include_dirs=None):
         """
-        Compila un archivo fuente C++ en un hilo separado.
+        Compila uno o varios archivos fuente C++ en un hilo separado.
 
         Args:
-            source_file: Ruta del archivo .cpp a compilar.
+            source_file: Ruta del archivo .cpp principal a compilar.
             output_file: Ruta del ejecutable de salida (opcional).
             std: Estándar de C++ a usar (c++11, c++14, c++17, c++20).
             extra_flags: Lista de flags adicionales para el compilador.
             on_output: Callback que recibe (línea, etiqueta) de la salida.
             on_done: Callback que recibe el código de retorno al finalizar.
+            source_files: Lista opcional de archivos .cpp a compilar/enlazar
+                juntos. Si se omite, solo se compila `source_file`.
+            include_dirs: Lista opcional de directorios donde buscar los
+                archivos de cabecera (.h) con la bandera -I.
 
         Returns:
             threading.Thread: El hilo de compilación, o None si falla.
@@ -123,21 +128,35 @@ class Compiler:
                 on_done(1)
             return None
 
-        # Verificar que el archivo fuente exista
-        if not os.path.exists(source_file):
-            if on_output:
-                on_output(f"Error: No existe el archivo {source_file}\n", "error")
-            if on_done:
-                on_done(1)
-            return None
+        # Determinar la lista de archivos fuente a compilar.
+        # `source_file` es el archivo principal (define el ejecutable),
+        # y `source_files` permite enlazar además los .cpp de las clases.
+        if source_files:
+            sources = list(source_files)
+        else:
+            sources = [source_file]
+
+        # Verificar que los archivos fuente existan
+        for src in sources:
+            if not os.path.exists(src):
+                if on_output:
+                    on_output(f"Error: No existe el archivo {src}\n", "error")
+                if on_done:
+                    on_done(1)
+                return None
 
         # Determinar el nombre del ejecutable de salida si no se especifica
         if output_file is None:
             base = os.path.splitext(source_file)[0]
             output_file = self._get_executable_name(base)
 
-        # Construir el comando de compilación
-        flags = [self.compiler_cmd, "-std=" + std, source_file, "-o", output_file]
+        # Construir el comando de compilación:
+        #   compilador -std=... [-Idir...] fuente1 fuente2 ... -o ejecutable
+        flags = [self.compiler_cmd, "-std=" + std]
+        for inc_dir in (include_dirs or []):
+            flags.append("-I" + inc_dir)
+        flags.extend(sources)
+        flags.extend(["-o", output_file])
         if extra_flags:
             flags.extend(extra_flags)
 
@@ -426,7 +445,8 @@ class Compiler:
             self.is_debugging = False
             self.process = None
 
-    def compile_and_run(self, source_file, args=None, on_output=None, on_done=None):
+    def compile_and_run(self, source_file, args=None, on_output=None, on_done=None,
+                        source_files=None, include_dirs=None):
         """
         Compila y ejecuta un archivo fuente en secuencia.
 
@@ -435,6 +455,10 @@ class Compiler:
             args: Argumentos para el programa (opcional).
             on_output: Callback que recibe (línea, etiqueta) de la salida.
             on_done: Callback que recibe el código de retorno al finalizar.
+            source_files: Lista opcional de archivos .cpp a compilar/enlazar
+                juntos (p. ej. los .cpp de las clases).
+            include_dirs: Lista opcional de directorios donde buscar los
+                archivos de cabecera (.h).
         """
         def handle_compile(returncode):
             # Si la compilación fue exitosa, ejecutar el programa
@@ -445,7 +469,13 @@ class Compiler:
             elif on_done:
                 on_done(returncode)
 
-        self.compile_source(source_file, on_output=on_output, on_done=handle_compile)
+        self.compile_source(
+            source_file,
+            source_files=source_files,
+            include_dirs=include_dirs,
+            on_output=on_output,
+            on_done=handle_compile,
+        )
 
     def _get_executable_name(self, base_path):
         """

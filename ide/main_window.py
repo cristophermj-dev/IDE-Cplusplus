@@ -14,6 +14,7 @@ funcionalidades:
 """
 
 import os
+import re
 import sys
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
@@ -152,6 +153,12 @@ class CodeEditor(tk.Frame):
         # Modificación del texto
         self.text.bind("<<Modified>>", self._on_modified)
 
+        # Resaltado tras pegar texto (Ctrl+V, menú o clic central)
+        self.text.bind("<<Paste>>", self._on_paste, add="+")
+        self.text.bind("<Control-v>", self._on_paste, add="+")
+        self.text.bind("<Control-V>", self._on_paste, add="+")
+        self.text.bind("<Button-2>", self._on_paste, add="+")
+
         # Autocompletado de llaves, paréntesis y corchetes
         self.text.bind("(", self._auto_close_bracket)
         self.text.bind("[", self._auto_close_bracket)
@@ -175,13 +182,39 @@ class CodeEditor(tk.Frame):
         self.text.bind("<Button-5>", self._on_mousewheel)
 
     def _on_modified(self, event=None):
-        """Marca el archivo como modificado."""
+        """Marca el archivo como modificado y re-resalta la sintaxis."""
         if self.text.edit_modified():
             self._modified = True
             self.ide.update_title()
             self.ide.update_status("Archivo modificado")
             self.ide.file_explorer.refresh_open_files()
+            self._schedule_highlight()
         self.text.edit_modified(False)
+
+    def _on_paste(self, event=None):
+        """Re-resalta la sintaxis después de pegar texto."""
+        # El pegado lo realiza el widget por defecto; programamos el
+        # resaltado para que se aplique una vez procesado el evento.
+        self._schedule_highlight()
+
+    def _schedule_highlight(self, event=None):
+        """Programa el resaltado de sintaxis (con un pequeño debounce)."""
+        if hasattr(self, "_highlight_job") and self._highlight_job is not None:
+            try:
+                self.after_cancel(self._highlight_job)
+            except tk.TclError:
+                pass
+        self._highlight_job = self.after(80, self._rehighlight)
+
+    def _rehighlight(self):
+        """Aplica el resaltado de sintaxis y actualiza la línea actual."""
+        try:
+            if not self.winfo_exists():
+                return
+            self.highlighter.highlight()
+            self._highlight_current_line()
+        except tk.TclError:
+            pass
 
     def _highlight_current_line(self):
         """Resalta la línea actual del cursor."""
@@ -196,6 +229,7 @@ class CodeEditor(tk.Frame):
     def _on_key_release(self, event=None):
         """Maneja la liberación de teclas."""
         self._highlight_current_line()
+        self._schedule_highlight()
         if event and event.keysym in ("Up", "Down", "Left", "Right",
                                       "Home", "End", "Prior", "Next"):
             self.ide.update_cursor_position()
@@ -770,11 +804,10 @@ class MainWindow(tk.Tk):
         self.vertical_paned.add(self.notebook, weight=3)
 
         # Panel de consola (abajo) - se crea pero se mantiene oculto.
-        # Se envuelve en un contenedor para limitar su ancho horizontal.
+        # Ocupa todo el ancho del panel vertical para aprovechar el espacio.
         self.console_container = ttk.Frame(self.vertical_paned)
         self.console = ConsolePanel(self.console_container, self.theme_manager)
-        self.console.place(relx=0.5, rely=0.0, anchor="n",
-                           relwidth=0.75, relheight=1.0)
+        self.console.pack(fill="both", expand=True)
         # La consola NO se añade al layout inicialmente.
         # Solo se muestra automáticamente cuando el programa se ejecuta
         # o cuando hay errores de compilación que el estudiante debe ver.
@@ -2191,6 +2224,138 @@ class MainWindow(tk.Tk):
 
     # --- Compilación / Ejecución / Depuración ---
 
+    def _get_project_root(self):
+        """Devuelve el directorio raíz del proyecto abierto, o None."""
+        if self.project_manager.has_project():
+            return self.project_manager.current_project.path
+        return None
+
+    def _all_project_sources(self, project_dir):
+        """Reúne todos los archivos fuente (.cpp/.cc/.cxx) del proyecto."""
+        sources = []
+        for root, dirs, files in os.walk(project_dir):
+            # Omitir directorios ocultos (p. ej. .git, .venv)
+            dirs[:] = [d for d in dirs if not d.startswith(".")]
+            for name in files:
+                if name.lower().endswith((".cpp", ".cc", ".cxx")):
+                    sources.append(os.path.abspath(os.path.join(root, name)))
+        sources.sort()
+        return sources
+
+    def _find_main_source(self):
+        """Localiza el archivo fuente que contiene la función main()."""
+        project_dir = self._get_project_root()
+        if not project_dir:
+            return None
+
+        sources = self._all_project_sources(project_dir)
+
+        # 1) Preferir un archivo llamado main.cpp
+        for src in sources:
+            if os.path.basename(src).lower() == "main.cpp":
+                return src
+
+        # 2) Buscar el primero que declare una función main
+        for src in sources:
+            try:
+                with open(src, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+                if re.search(r"\bmain\s*\(", content):
+                    return src
+            except OSError:
+                continue
+
+        # 3) Fallback: el archivo actualmente abierto (si pertenece al proyecto)
+        if self.current_editor and self.current_editor.file_path:
+            return self.current_editor.file_path
+        return None
+
+    def _get_entry_source(self):
+        """Devuelve el archivo fuente principal (main) a compilar/ejecutar.
+
+        Con un proyecto abierto, localiza el main sin importar qué pestaña
+        esté seleccionada. Sin proyecto, usa el archivo abierto actual.
+        """
+        main = self._find_main_source()
+        if main:
+            return main
+        if self.current_editor and self.current_editor.file_path:
+            return self.current_editor.file_path
+        return None
+
+    def _collect_source_files(self, source_file):
+        """Reúne los archivos .cpp a compilar/enlazar.
+
+        Con un proyecto abierto, devuelve TODOS los archivos fuente del
+        proyecto, poniendo en primer lugar el archivo principal (main).
+        Sin proyecto, devuelve el archivo actual y los .cpp de su mismo
+        directorio.
+
+        Args:
+            source_file: Ruta del archivo fuente principal.
+
+        Returns:
+            list[str]: Lista de rutas absolutas de archivos .cpp.
+        """
+        source_file = os.path.abspath(source_file)
+
+        project_dir = self._get_project_root()
+        if project_dir:
+            sources = self._all_project_sources(project_dir)
+            main = os.path.abspath(self._find_main_source() or source_file)
+            if main in sources:
+                sources.remove(main)
+            sources.insert(0, main)
+            return sources
+
+        # Sin proyecto: archivo actual + .cpp del mismo directorio
+        sources = [source_file]
+        directory = os.path.dirname(source_file)
+        seen = {source_file}
+        try:
+            entries = sorted(os.listdir(directory))
+        except OSError:
+            entries = []
+        for entry in entries:
+            if entry.lower().endswith((".cpp", ".cc", ".cxx")):
+                path = os.path.abspath(os.path.join(directory, entry))
+                if os.path.isfile(path) and path not in seen:
+                    seen.add(path)
+                    sources.append(path)
+
+        return sources
+
+    def _get_include_dirs(self, source_file):
+        """Devuelve los directorios donde buscar los archivos de cabecera.
+
+        Incluye la carpeta headers/ del proyecto (por defecto), la raíz
+        del proyecto y el directorio del archivo fuente actual.
+
+        Args:
+            source_file: Ruta del archivo fuente principal.
+
+        Returns:
+            list[str]: Lista de rutas de directorios existentes.
+        """
+        include_dirs = []
+        project_dir = self._get_project_root()
+        if project_dir:
+            headers_dir = os.path.join(project_dir, "headers")
+            if os.path.isdir(headers_dir):
+                include_dirs.append(headers_dir)
+            include_dirs.append(project_dir)
+
+        src_dir = os.path.dirname(os.path.abspath(source_file))
+        if src_dir:
+            include_dirs.append(src_dir)
+
+        # Conservar el orden y eliminar duplicados
+        result = []
+        for d in include_dirs:
+            if d and os.path.isdir(d) and d not in result:
+                result.append(d)
+        return result
+
     def compile_program(self):
         """Compila el programa actual."""
         if not self.current_editor:
@@ -2203,7 +2368,11 @@ class MainWindow(tk.Tk):
         if not self._ensure_saved():
             return
 
-        source_file = self.current_editor.file_path
+        source_file = self._get_entry_source()
+        if not source_file:
+            messagebox.showwarning("Sin archivo", "No hay un archivo fuente para compilar.")
+            return
+
         self.console.clear_errors()
         self.console.show_output_tab()
         self.console.output(f"=== Compilando {os.path.basename(source_file)} ===\n")
@@ -2231,6 +2400,8 @@ class MainWindow(tk.Tk):
             extra_flags=extra_flags,
             on_output=on_output,
             on_done=on_done,
+            source_files=self._collect_source_files(source_file),
+            include_dirs=self._get_include_dirs(source_file),
         )
 
     def run_program(self, args=None):
@@ -2245,8 +2416,8 @@ class MainWindow(tk.Tk):
         # Mostrar la consola al ejecutar el programa
         self.show_console()
 
-        if self.current_editor.file_path:
-            source_file = self.current_editor.file_path
+        source_file = self._get_entry_source()
+        if source_file:
             base = os.path.splitext(source_file)[0]
             executable = base + (".exe" if os.name == "nt" else "")
 
@@ -2262,6 +2433,8 @@ class MainWindow(tk.Tk):
                     args=args,
                     on_output=self._console_output,
                     on_done=self._on_program_done,
+                    source_files=self._collect_source_files(source_file),
+                    include_dirs=self._get_include_dirs(source_file),
                 )
                 return
 
@@ -2291,7 +2464,11 @@ class MainWindow(tk.Tk):
         if not self._ensure_saved():
             return
 
-        source_file = self.current_editor.file_path
+        source_file = self._get_entry_source()
+        if not source_file:
+            messagebox.showwarning("Sin archivo", "No hay un archivo fuente para compilar y ejecutar.")
+            return
+
         self.console.clear_output()
         self.console.clear_errors()
         self.console.show_output_tab()
@@ -2309,16 +2486,18 @@ class MainWindow(tk.Tk):
             extra_flags=extra_flags,
             on_output=on_output,
             on_done=lambda code: self._after_compile_for_run(code),
+            source_files=self._collect_source_files(source_file),
+            include_dirs=self._get_include_dirs(source_file),
         )
 
     def _after_compile_for_run(self, code):
         """Continuación de compilar y ejecutar."""
         self.build_status_label.config(text="")
         if code == 0:
-            if self.current_editor and self.current_editor.file_path:
+            source_file = self._get_entry_source()
+            if source_file:
                 # Mostrar la consola al comenzar la ejecución
                 self.show_console()
-                source_file = self.current_editor.file_path
                 base = os.path.splitext(source_file)[0]
                 executable = base + (".exe" if os.name == "nt" else "")
                 self.console.output("Ejecutando programa...\n")
@@ -2347,7 +2526,11 @@ class MainWindow(tk.Tk):
             return
 
         source_file = self.current_editor.file_path
-        base = os.path.splitext(source_file)[0]
+        # El ejecutable se genera a partir del main del proyecto, sin
+        # importar qué pestaña esté seleccionada. Los breakpoints se
+        # toman del editor actual (donde el usuario los marcó).
+        entry_source = self._get_entry_source() or source_file
+        base = os.path.splitext(entry_source)[0]
         executable = base + (".exe" if os.name == "nt" else "")
 
         # Recoger los breakpoints marcados en el editor actual
@@ -2370,11 +2553,13 @@ class MainWindow(tk.Tk):
             self.console.show_debug_tab()
             self.console.debug("Compilando con símbolos de depuración (-g)...\n")
             self.compiler.compile_source(
-                source_file,
+                entry_source,
                 std=self.std_var.get(),
                 extra_flags=["-g", "-Wall", "-O0"],
                 on_output=self._debug_output,
                 on_done=lambda code: self._start_debug_after_compile(code, executable, breakpoints),
+                source_files=self._collect_source_files(entry_source),
+                include_dirs=self._get_include_dirs(entry_source),
             )
         else:
             self._start_debug(executable, breakpoints)
