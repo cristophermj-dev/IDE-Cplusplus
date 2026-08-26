@@ -808,6 +808,8 @@ class MainWindow(tk.Tk):
         self.console_container = ttk.Frame(self.vertical_paned)
         self.console = ConsolePanel(self.console_container, self.theme_manager)
         self.console.pack(fill="both", expand=True)
+        # Conectar la entrada interactiva de la consola con el programa
+        self.console.set_input_callback(self._send_program_input)
         # La consola NO se añade al layout inicialmente.
         # Solo se muestra automáticamente cuando el programa se ejecuta
         # o cuando hay errores de compilación que el estudiante debe ver.
@@ -2415,6 +2417,7 @@ class MainWindow(tk.Tk):
 
         # Mostrar la consola al ejecutar el programa
         self.show_console()
+        self.console.enable_input(True)
 
         source_file = self._get_entry_source()
         if source_file:
@@ -2498,6 +2501,7 @@ class MainWindow(tk.Tk):
             if source_file:
                 # Mostrar la consola al comenzar la ejecución
                 self.show_console()
+                self.console.enable_input(True)
                 base = os.path.splitext(source_file)[0]
                 executable = base + (".exe" if os.name == "nt" else "")
                 self.console.output("Ejecutando programa...\n")
@@ -2617,6 +2621,7 @@ class MainWindow(tk.Tk):
         """Detiene el proceso en ejecución."""
         if self.compiler.is_busy():
             self.compiler.stop()
+            self.console.enable_input(False)
             self.console.output("\n⏹ Proceso detenido por el usuario.\n")
             self.update_status("Proceso detenido")
 
@@ -2636,6 +2641,15 @@ class MainWindow(tk.Tk):
             "2. GDB instalado (sudo apt install gdb)",
         )
 
+    def _send_program_input(self, text):
+        """Envía el texto escrito en la consola al programa en ejecución.
+
+        Args:
+            text: Línea escrita por el usuario (con salto de línea).
+        """
+        if self.compiler and self.compiler.is_running:
+            self.compiler.send_input(text)
+
     def _console_output(self, line, tag):
         """Escribe la salida de un proceso en la pestaña de consola adecuada."""
         if tag == "error":
@@ -2654,6 +2668,7 @@ class MainWindow(tk.Tk):
 
     def _on_program_done(self, code):
         """Maneja la finalización del programa."""
+        self.console.enable_input(False)
         self.build_status_label.config(text="")
         self.update_status(f"Proceso terminado con código {code}")
 

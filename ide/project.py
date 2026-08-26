@@ -258,6 +258,10 @@ class ProjectManager:
             f"#ifndef {guard}\n"
             f"#define {guard}\n"
             f"\n"
+            f"#include <iostream>\n"
+            f"\n"
+            f"using namespace std;\n"
+            f"\n"
             f"class {class_name} {{\n"
             f"public:\n"
             f"    {class_name}();\n"
@@ -272,9 +276,6 @@ class ProjectManager:
         # Contenido del archivo fuente .cpp
         source_content = (
             f'#include "{class_name}.h"\n'
-            f'#include <iostream>\n'
-            f'\n'
-            f'using namespace std;\n'
             f'\n'
             f'{class_name}::{class_name}() {{\n'
             f'    // Constructor\n'

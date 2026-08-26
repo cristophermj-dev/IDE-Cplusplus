@@ -275,6 +275,7 @@ class Compiler:
             # Ejecutar el programa capturando stdout y stderr
             self.process = subprocess.Popen(
                 cmd,
+                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -314,6 +315,27 @@ class Compiler:
             # Limpiar el estado de ejecución
             self.is_running = False
             self.process = None
+
+    def send_input(self, text):
+        """Envía texto a la entrada estándar del programa en ejecución.
+
+        Args:
+            text: Texto a escribir en stdin (normalmente una línea con
+                salto de línea al final).
+
+        Returns:
+            bool: True si el texto se envió correctamente, False si no
+                hay ningún programa en ejecución o su stdin ya está cerrado.
+        """
+        proc = self.process
+        if proc is None or proc.stdin is None or proc.stdin.closed:
+            return False
+        try:
+            proc.stdin.write(text)
+            proc.stdin.flush()
+            return True
+        except (BrokenPipeError, OSError, ValueError):
+            return False
 
     def debug_program(self, executable, source_file, breakpoints=None, on_output=None, on_done=None):
         """

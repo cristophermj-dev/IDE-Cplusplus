@@ -42,6 +42,8 @@ class ConsolePanel(ttk.Frame):
         """
         super().__init__(parent, **kwargs)
         self.theme_manager = theme_manager or ThemeManager()
+        self._input_callback = None   # Función que recibe la entrada del usuario
+        self._input_enabled = False   # Indica si se puede escribir en la entrada
         self._build_ui()
 
     def apply_theme(self):
@@ -89,6 +91,17 @@ class ConsolePanel(ttk.Frame):
 
         # Pestaña de salida
         self.output_frame = self._create_tab("Salida", "#1e1e1e")
+
+        # Barra de entrada para interactuar con el programa (cin, getline...)
+        self.input_bar = ttk.Frame(self.output_frame)
+        self.input_bar.pack(side="bottom", fill="x")
+        ttk.Label(self.input_bar, text="Entrada:").pack(side="left", padx=(8, 4), pady=4)
+        self.input_var = tk.StringVar()
+        self.input_entry = ttk.Entry(self.input_bar, textvariable=self.input_var,
+                                     state="disabled")
+        self.input_entry.pack(side="left", fill="x", expand=True, padx=(0, 8), pady=4)
+        self.input_entry.bind("<Return>", self._on_input_return)
+
         self.output_text = self._create_text_widget(self.output_frame)
 
         # Pestaña de errores
@@ -192,6 +205,49 @@ class ConsolePanel(ttk.Frame):
     def info(self, message):
         """Escribe un mensaje informativo (azul) en la pestaña de salida."""
         self._write(self.output_text, message, "info")
+
+    def set_input_callback(self, callback):
+        """Registra la función que recibe el texto escrito por el usuario.
+
+        Args:
+            callback: Función que recibe un string (la línea escrita).
+        """
+        self._input_callback = callback
+
+    def enable_input(self, enabled=True):
+        """Habilita o deshabilita la captura de entrada en la pestaña Salida.
+
+        Cuando está habilitada, el usuario puede escribir en el campo de
+        entrada y presionar Enter para enviar el texto al programa en
+        ejecución (por ejemplo, para responder a un cin).
+
+        Args:
+            enabled: True para permitir la entrada, False para desactivarla.
+        """
+        self._input_enabled = enabled
+        if enabled:
+            self.input_var.set("")
+            self.input_entry.configure(state="normal")
+            self.input_entry.focus_set()
+        else:
+            self.input_entry.configure(state="disabled")
+
+    def _on_input_return(self, event=None):
+        """Envía la línea escrita por el usuario al programa en ejecución."""
+        if not self._input_enabled:
+            return "break"
+
+        line = self.input_var.get()
+        self.input_var.set("")
+
+        # Mostrar en la consola lo que el usuario escribió
+        self._write(self.output_text, line + "\n", "normal")
+
+        # Enviar al programa (con salto de línea)
+        if self._input_callback:
+            self._input_callback(line + "\n")
+
+        return "break"
 
     def clear_all(self):
         """Limpia todas las pestañas de la consola."""
