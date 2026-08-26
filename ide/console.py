@@ -77,7 +77,7 @@ class ConsolePanel(ttk.Frame):
         toolbar.pack(fill="x", padx=2, pady=2)
 
         # Botón para limpiar toda la consola
-        ttk.Button(toolbar, text="🗑  Limpiar", command=self.clear_all,
+        ttk.Button(toolbar, text="Limpiar", command=self.clear_all,
                    width=12).pack(side="left", padx=2)
 
         # Checkbox para activar/desactivar el auto-scroll

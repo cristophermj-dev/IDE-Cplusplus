@@ -520,11 +520,11 @@ class ClassDialog(tk.Toplevel):
 
         attrs_btns = ttk.Frame(main_frame)
         attrs_btns.pack(fill="x", pady=2)
-        ttk.Button(attrs_btns, text="➕ Añadir", width=10,
+        ttk.Button(attrs_btns, text="Añadir", width=10,
                    command=self._add_attribute).pack(side="left", padx=2)
-        ttk.Button(attrs_btns, text="✏️ Editar", width=10,
+        ttk.Button(attrs_btns, text="Editar", width=10,
                    command=self._edit_attribute).pack(side="left", padx=2)
-        ttk.Button(attrs_btns, text="🗑 Eliminar", width=10,
+        ttk.Button(attrs_btns, text="Eliminar", width=10,
                    command=self._delete_attribute).pack(side="left", padx=2)
 
         # Separador
@@ -544,11 +544,11 @@ class ClassDialog(tk.Toplevel):
 
         methods_btns = ttk.Frame(main_frame)
         methods_btns.pack(fill="x", pady=2)
-        ttk.Button(methods_btns, text="➕ Añadir", width=10,
+        ttk.Button(methods_btns, text="Añadir", width=10,
                    command=self._add_method).pack(side="left", padx=2)
-        ttk.Button(methods_btns, text="✏️ Editar", width=10,
+        ttk.Button(methods_btns, text="Editar", width=10,
                    command=self._edit_method).pack(side="left", padx=2)
-        ttk.Button(methods_btns, text="🗑 Eliminar", width=10,
+        ttk.Button(methods_btns, text="Eliminar", width=10,
                    command=self._delete_method).pack(side="left", padx=2)
 
         # Botones finales
@@ -822,45 +822,45 @@ class UMLEditor(tk.Frame):
         toolbar = ttk.Frame(self)
         toolbar.pack(side="top", fill="x", padx=2, pady=2)
 
-        ttk.Button(toolbar, text="➕ Clase", width=10,
+        ttk.Button(toolbar, text="Clase", width=10,
                    command=self.add_class).pack(side="left", padx=2)
-        ttk.Button(toolbar, text="🔗 Relación", width=10,
+        ttk.Button(toolbar, text="Relación", width=10,
                    command=self.start_relation_mode).pack(side="left", padx=2)
-        ttk.Button(toolbar, text="✏️ Editar", width=10,
+        ttk.Button(toolbar, text="Editar", width=10,
                    command=self.edit_selected_class).pack(side="left", padx=2)
-        ttk.Button(toolbar, text="🗑 Eliminar", width=10,
+        ttk.Button(toolbar, text="Eliminar", width=10,
                    command=self.delete_selected).pack(side="left", padx=2)
 
         ttk.Separator(toolbar, orient="vertical").pack(
             side="left", fill="y", padx=5, pady=3)
 
-        ttk.Button(toolbar, text="💾 Guardar XML", width=12,
+        ttk.Button(toolbar, text="Guardar XML", width=12,
                    command=self.save_xml).pack(side="left", padx=2)
-        ttk.Button(toolbar, text="📂 Abrir XML", width=12,
+        ttk.Button(toolbar, text="Abrir XML", width=12,
                    command=self.open_xml).pack(side="left", padx=2)
 
         ttk.Separator(toolbar, orient="vertical").pack(
             side="left", fill="y", padx=5, pady=3)
 
-        ttk.Button(toolbar, text="📄 PDF", width=8,
+        ttk.Button(toolbar, text="PDF", width=8,
                    command=self.export_pdf).pack(side="left", padx=2)
-        ttk.Button(toolbar, text="🖼 PNG", width=8,
+        ttk.Button(toolbar, text="PNG", width=8,
                    command=self.export_png).pack(side="left", padx=2)
 
         ttk.Separator(toolbar, orient="vertical").pack(
             side="left", fill="y", padx=5, pady=3)
 
-        ttk.Button(toolbar, text="🔍 +", width=4,
+        ttk.Button(toolbar, text="+", width=4,
                    command=self.zoom_in).pack(side="left", padx=2)
-        ttk.Button(toolbar, text="🔍 -", width=4,
+        ttk.Button(toolbar, text="-", width=4,
                    command=self.zoom_out).pack(side="left", padx=2)
-        ttk.Button(toolbar, text="🔄", width=4,
+        ttk.Button(toolbar, text="↻", width=4,
                    command=self.reset_zoom).pack(side="left", padx=2)
 
         ttk.Separator(toolbar, orient="vertical").pack(
             side="left", fill="y", padx=5, pady=3)
 
-        ttk.Button(toolbar, text="🗑 Limpiar", width=10,
+        ttk.Button(toolbar, text="Limpiar", width=10,
                    command=self.clear_all).pack(side="left", padx=2)
 
         # Canvas con scrollbars

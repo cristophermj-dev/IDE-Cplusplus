@@ -208,10 +208,10 @@ class Compiler:
             # Informar del resultado de la compilación
             if returncode == 0:
                 if on_output:
-                    on_output("✓ Compilación exitosa\n", "success")
+                    on_output("Compilación exitosa\n", "success")
             else:
                 if on_output:
-                    on_output(f"✗ Error de compilación (código {returncode})\n", "error")
+                    on_output(f"Error de compilación (código {returncode})\n", "error")
 
             if on_done:
                 on_done(returncode)

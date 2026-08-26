@@ -391,15 +391,15 @@ class FileExplorer(tk.Frame):
         # Barra superior
         header = ttk.Frame(self)
         header.pack(fill="x", padx=3, pady=3)
-        ttk.Label(header, text="📁 EXPLORADOR",
+        ttk.Label(header, text="EXPLORADOR",
                   font=("Arial", 9, "bold")).pack(side="left")
 
         # Botones del explorador
         btn_frame = ttk.Frame(header)
         btn_frame.pack(side="right")
-        ttk.Button(btn_frame, text="⬆", width=3,
+        ttk.Button(btn_frame, text="↑", width=3,
                    command=self.go_up).pack(side="left", padx=1)
-        ttk.Button(btn_frame, text="🔄", width=3,
+        ttk.Button(btn_frame, text="↻", width=3,
                    command=self.refresh).pack(side="left", padx=1)
 
         # --- Sección de proyecto ---
@@ -407,11 +407,11 @@ class FileExplorer(tk.Frame):
         self.project_frame.pack(fill="x", padx=3, pady=(5, 0))
 
         self.project_label = ttk.Label(self.project_frame,
-                                       text="📦 Sin proyecto",
+                                       text="Sin proyecto",
                                        font=("Arial", 9, "bold"))
         self.project_label.pack(side="left", padx=2)
 
-        self.close_project_btn = ttk.Button(self.project_frame, text="✖ Cerrar",
+        self.close_project_btn = ttk.Button(self.project_frame, text="Cerrar",
                                             width=7,
                                             command=self.ide.close_project,
                                             state="disabled")
@@ -420,7 +420,7 @@ class FileExplorer(tk.Frame):
         # --- Sección de archivos abiertos ---
         open_files_header = ttk.Frame(self)
         open_files_header.pack(fill="x", padx=3, pady=(8, 0))
-        ttk.Label(open_files_header, text="📂 ARCHIVOS ABIERTOS",
+        ttk.Label(open_files_header, text="ARCHIVOS ABIERTOS",
                   font=("Arial", 9, "bold")).pack(side="left")
 
         # Lista de archivos abiertos
@@ -537,10 +537,10 @@ class FileExplorer(tk.Frame):
         """Actualiza la visualización del proyecto."""
         if self.ide.project_manager.has_project():
             project = self.ide.project_manager.current_project
-            self.project_label.config(text=f"📦 {project.name}")
+            self.project_label.config(text=project.name)
             self.close_project_btn.config(state="normal")
         else:
-            self.project_label.config(text="📦 Sin proyecto")
+            self.project_label.config(text="Sin proyecto")
             self.close_project_btn.config(state="disabled")
 
     def open_directory(self, path=None):
@@ -560,7 +560,7 @@ class FileExplorer(tk.Frame):
             return
 
         self.tree.delete(*self.tree.get_children())
-        root_item = self.tree.insert("", "end", text=f"📁 {os.path.basename(self._current_dir) or self._current_dir}",
+        root_item = self.tree.insert("", "end", text=os.path.basename(self._current_dir) or self._current_dir,
                                      open=True)
         self._populate_directory(self._current_dir, root_item)
 
@@ -578,32 +578,16 @@ class FileExplorer(tk.Frame):
 
             for d in dirs:
                 item = self.tree.insert(parent_item, "end",
-                                        text=f"📁 {d}", open=False)
+                                        text=d, open=False)
                 # Añadir placeholder para expansión
                 self._populate_directory(os.path.join(path, d), item)
 
             for f in files:
-                ext = os.path.splitext(f)[1].lower()
-                icon = self._get_file_icon(ext)
-                self.tree.insert(parent_item, "end", text=f"{icon} {f}",
+                self.tree.insert(parent_item, "end", text=f,
                                  values=(os.path.join(path, f),))
 
         except PermissionError:
             pass
-
-    def _get_file_icon(self, ext):
-        """Obtiene un icono para el tipo de archivo."""
-        icons = {
-            ".cpp": "📄", ".cc": "📄", ".cxx": "📄", ".c": "📄",
-            ".h": "📋", ".hpp": "📋", ".hh": "📋",
-            ".cmj": "📦",
-            ".txt": "📝", ".md": "📝", ".py": "🐍",
-            ".json": "📊", ".xml": "📊", ".yaml": "📊", ".yml": "📊",
-            ".sh": "⚙", ".bash": "⚙",
-            ".png": "🖼", ".jpg": "🖼", ".jpeg": "🖼", ".gif": "🖼",
-            ".pdf": "📕",
-        }
-        return icons.get(ext, "📄")
 
     def _on_double_click(self, event=None):
         """Abre un archivo al hacer doble clic."""
@@ -821,10 +805,10 @@ class MainWindow(tk.Tk):
         """Actualiza los textos de los botones de visibilidad."""
         if hasattr(self, "explorer_toggle_btn"):
             self.explorer_toggle_btn.config(
-                text="📁 OCULTAR" if self._toggle_explorer_var.get() else "📁 MOSTRAR")
+                text="Ocultar explorador" if self._toggle_explorer_var.get() else "Mostrar explorador")
         if hasattr(self, "console_toggle_btn"):
             self.console_toggle_btn.config(
-                text="▤ OCULTAR" if self._toggle_console_var.get() else "▤ MOSTRAR")
+                text="Ocultar consola" if self._toggle_console_var.get() else "Mostrar consola")
         # Mostrar u ocultar los controles de consola en la parte superior
         # según si la consola está visible o no
         if hasattr(self, "top_console_controls"):
@@ -1029,19 +1013,19 @@ class MainWindow(tk.Tk):
 
         # Menú GitHub
         github_menu = tk.Menu(menubar, tearoff=False)
-        github_menu.add_command(label="⚙ Configurar GitHub...",
+        github_menu.add_command(label="Configurar GitHub...",
                                 command=self.configure_github)
         github_menu.add_separator()
-        github_menu.add_command(label="📂 Clonar proyecto desde GitHub...",
+        github_menu.add_command(label="Clonar proyecto desde GitHub...",
                                 command=self.github_clone)
-        github_menu.add_command(label="🚀 Publicar proyecto en GitHub...",
+        github_menu.add_command(label="Publicar proyecto en GitHub...",
                                 command=self.github_publish)
-        github_menu.add_command(label="📤 Commit y sincronizar (push)...",
+        github_menu.add_command(label="Commit y sincronizar (push)...",
                                 command=self.github_push)
-        github_menu.add_command(label="📥 Sincronizar (pull)",
+        github_menu.add_command(label="Sincronizar (pull)",
                                 command=self.github_pull)
         github_menu.add_separator()
-        github_menu.add_command(label="🔎 Estado del repositorio",
+        github_menu.add_command(label="Estado del repositorio",
                                 command=self.github_status)
         menubar.add_cascade(label="GitHub", menu=github_menu)
 
@@ -1060,12 +1044,12 @@ class MainWindow(tk.Tk):
 
         # Botones de visibilidad de paneles
         self.explorer_toggle_btn = ttk.Button(
-            toolbar, text="📁 OCULTAR", width=9,
+            toolbar, text="Ocultar explorador", width=17,
             command=self.toggle_explorer)
         self.explorer_toggle_btn.pack(side="left", padx=2, pady=3)
 
         self.console_toggle_btn = ttk.Button(
-            toolbar, text="▤ OCULTAR", width=9,
+            toolbar, text="Ocultar consola", width=15,
             command=self.toggle_console)
         self.console_toggle_btn.pack(side="left", padx=2, pady=3)
 
@@ -1075,7 +1059,7 @@ class MainWindow(tk.Tk):
         # mediante _update_panel_buttons() al final de este método.
 
         # Botón para limpiar la consola
-        ttk.Button(self.top_console_controls, text="🗑 Limpiar", width=10,
+        ttk.Button(self.top_console_controls, text="Limpiar", width=10,
                    command=self.console.clear_all).pack(side="left", padx=2)
 
         # Checkbox de auto-scroll sincronizado con la consola
@@ -1087,31 +1071,31 @@ class MainWindow(tk.Tk):
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
 
         # Botones de archivo
-        ttk.Button(toolbar, text="📄 Nuevo", width=8,
+        ttk.Button(toolbar, text="Nuevo", width=8,
                    command=lambda: self.new_file(add_to_project=True)).pack(side="left", padx=2, pady=3)
-        ttk.Button(toolbar, text="📂 Abrir", width=8,
+        ttk.Button(toolbar, text="Abrir", width=8,
                    command=self.open_file).pack(side="left", padx=2, pady=3)
-        ttk.Button(toolbar, text="💾 Guardar", width=8,
+        ttk.Button(toolbar, text="Guardar", width=8,
                    command=self.save_file).pack(side="left", padx=2, pady=3)
 
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
 
         # Botones de proyecto
-        ttk.Button(toolbar, text="📦 Proyecto", width=10,
+        ttk.Button(toolbar, text="Proyecto", width=10,
                    command=self.new_project).pack(side="left", padx=2, pady=3)
-        ttk.Button(toolbar, text="➕ Clase", width=8,
+        ttk.Button(toolbar, text="Clase", width=8,
                    command=self.new_class).pack(side="left", padx=2, pady=3)
 
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
 
         # Botones de compilación/ejecución
-        ttk.Button(toolbar, text="🛠 Compilar", width=10,
+        ttk.Button(toolbar, text="Compilar", width=10,
                    command=self.compile_program).pack(side="left", padx=2, pady=3)
-        ttk.Button(toolbar, text="▶ Ejecutar", width=10,
+        ttk.Button(toolbar, text="Ejecutar", width=10,
                    command=self.run_program).pack(side="left", padx=2, pady=3)
-        ttk.Button(toolbar, text="🐛 Depurar", width=10,
+        ttk.Button(toolbar, text="Depurar", width=10,
                    command=self.debug_program).pack(side="left", padx=2, pady=3)
-        ttk.Button(toolbar, text="⏹ Detener", width=9,
+        ttk.Button(toolbar, text="Detener", width=9,
                    command=self.stop_program).pack(side="left", padx=2, pady=3)
 
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
@@ -1126,24 +1110,24 @@ class MainWindow(tk.Tk):
 
         # Botón tema
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
-        ttk.Button(toolbar, text="🌓 Tema", width=7,
+        ttk.Button(toolbar, text="Tema", width=7,
                    command=self.toggle_theme).pack(side="left", padx=2, pady=3)
 
         # Botón UML
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
-        ttk.Button(toolbar, text="📐 UML", width=8,
+        ttk.Button(toolbar, text="UML", width=8,
                    command=self.open_uml_editor).pack(side="left", padx=2, pady=3)
 
         # Botón GitHub
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
-        ttk.Button(toolbar, text="📂 Clonar",
+        ttk.Button(toolbar, text="Clonar",
                    command=self.github_clone).pack(side="left", padx=2, pady=3)
-        ttk.Button(toolbar, text="🐙 GitHub", width=9,
+        ttk.Button(toolbar, text="GitHub", width=9,
                    command=self.github_publish).pack(side="left", padx=2, pady=3)
 
         # Botón buscar
         ttk.Separator(toolbar, orient="vertical").pack(side="left", fill="y", padx=5, pady=3)
-        ttk.Button(toolbar, text="🔍 Buscar", width=8,
+        ttk.Button(toolbar, text="Buscar", width=8,
                    command=self.show_search).pack(side="left", padx=2, pady=3)
 
         # Configurar visibilidad inicial de los controles de consola superiores
@@ -1237,7 +1221,7 @@ class MainWindow(tk.Tk):
             if os.path.exists(main_cpp):
                 self.open_file_path(main_cpp)
 
-            self.console.success(f"✓ Proyecto '{project.name}' creado en {project.path}\n")
+            self.console.success(f"Proyecto '{project.name}' creado en {project.path}\n")
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo crear el proyecto:\n{e}")
 
@@ -1267,7 +1251,7 @@ class MainWindow(tk.Tk):
             if os.path.exists(main_cpp):
                 self.open_file_path(main_cpp)
 
-            self.console.success(f"✓ Proyecto '{project.name}' abierto\n")
+            self.console.success(f"Proyecto '{project.name}' abierto\n")
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo abrir el proyecto:\n{e}")
 
@@ -1280,7 +1264,7 @@ class MainWindow(tk.Tk):
         try:
             file_path = self.project_manager.save_project()
             self.update_status(f"Proyecto guardado: {file_path}")
-            self.console.success(f"✓ Proyecto guardado: {file_path}\n")
+            self.console.success(f"Proyecto guardado: {file_path}\n")
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo guardar el proyecto:\n{e}")
 
@@ -1351,7 +1335,7 @@ class MainWindow(tk.Tk):
                 self.open_file_path(header_path)
                 self.open_file_path(source_path)
                 self.update_status(f"Clase '{class_name}' creada")
-                self.console.success(f"✓ Clase '{class_name}' creada:\n  {header_path}\n  {source_path}\n")
+                self.console.success(f"Clase '{class_name}' creada:\n  {header_path}\n  {source_path}\n")
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo crear la clase:\n{e}")
 
@@ -1364,7 +1348,7 @@ class MainWindow(tk.Tk):
             alias = f"@{cfg['owner']} / {cfg['repo']}"
             self.update_status(f"GitHub configurado: {alias}")
             self.console.success(
-                f"✓ GitHub configurado: {alias}\n"
+                f"GitHub configurado: {alias}\n"
                 f"  Repositorio {'privado' if cfg['private'] else 'público'}.\n"
             )
 
@@ -1427,7 +1411,7 @@ class MainWindow(tk.Tk):
     def _github_done(self, ok, action, text):
         """Muestra el resultado de una operación de GitHub."""
         if ok:
-            self.console.success(f"✓ GitHub ({action}):\n{text}\n")
+            self.console.success(f"GitHub ({action}):\n{text}\n")
             self.update_status(f"GitHub: {action} completado")
             try:
                 self.file_explorer.refresh()
@@ -1435,7 +1419,7 @@ class MainWindow(tk.Tk):
                 pass
             messagebox.showinfo("GitHub", f"{text}")
         else:
-            self.console.error(f"✗ GitHub ({action}):\n{text}\n")
+            self.console.error(f"GitHub ({action}):\n{text}\n")
             self.update_status("GitHub: error")
             messagebox.showerror("Error de GitHub", text)
 
@@ -1613,13 +1597,13 @@ class MainWindow(tk.Tk):
     def _github_clone_done(self, ok, info):
         """Muestra el resultado del clonado y abre el proyecto si fue bien."""
         if not ok:
-            self.console.error(f"✗ GitHub (clonar):\n{info}\n")
+            self.console.error(f"GitHub (clonar):\n{info}\n")
             self.update_status("GitHub: error al clonar")
             messagebox.showerror("Error al clonar", info)
             return
 
         clone_dir = info
-        self.console.success(f"✓ Proyecto clonado en {clone_dir}\n")
+        self.console.success(f"Proyecto clonado en {clone_dir}\n")
         self.update_status("GitHub: proyecto clonado")
         messagebox.showinfo("GitHub", f"Proyecto clonado en:\n{clone_dir}")
 
@@ -1658,7 +1642,7 @@ class MainWindow(tk.Tk):
                 self.open_file_path(main_cpp)
 
             self.console.success(
-                f"✓ Proyecto '{project.name}' abierto desde GitHub\n"
+                f"Proyecto '{project.name}' abierto desde GitHub\n"
             )
         except Exception as e:  # noqa: BLE001
             messagebox.showerror(
@@ -1941,7 +1925,7 @@ class MainWindow(tk.Tk):
         if notify:
             self.update_status(f"Archivo agregado al proyecto: {abs_path}")
             self.console.success(
-                f"✓ Archivo agregado al proyecto: {abs_path}\n"
+                f"Archivo agregado al proyecto: {abs_path}\n"
             )
         return True
 
@@ -2622,7 +2606,7 @@ class MainWindow(tk.Tk):
         if self.compiler.is_busy():
             self.compiler.stop()
             self.console.enable_input(False)
-            self.console.output("\n⏹ Proceso detenido por el usuario.\n")
+            self.console.output("\nProceso detenido por el usuario.\n")
             self.update_status("Proceso detenido")
 
     def show_debug_settings(self):
@@ -2805,12 +2789,12 @@ class MainWindow(tk.Tk):
         info = self.compiler.get_compiler_info()
         if info["available"]:
             self.compiler_label.config(
-                text=f"⚙ {info['name']} {info['version'].split()[-1] if info['version'] else ''}"
+                text=f"{info['name']} {info['version'].split()[-1] if info['version'] else ''}"
             )
         else:
-            self.compiler_label.config(text="⚠ Sin compilador C++")
+            self.compiler_label.config(text="Sin compilador C++")
             self.console.warning(
-                "⚠ No se encontró un compilador C++. Instale g++ o clang++.\n"
+                "No se encontró un compilador C++. Instale g++ o clang++.\n"
                 "  En Ubuntu/Debian: sudo apt install g++\n"
                 "  En Fedora: sudo dnf install gcc-c++\n"
             )
@@ -2831,7 +2815,7 @@ class MainWindow(tk.Tk):
 
         # Crear nuevo editor UML
         self.uml_editor = UMLEditor(self.notebook, self)
-        self.notebook.add(self.uml_editor, text="📐 Diagrama UML")
+        self.notebook.add(self.uml_editor, text="Diagrama UML")
         self.notebook.select(self.uml_editor)
         self.current_editor = self.uml_editor
         self.update_status("Editor UML abierto")
