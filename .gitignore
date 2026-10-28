@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# PyInstaller
+build/
+dist/
+MeriCode.spec
+
+# Entornos virtuales
+.venv/
+
+# Editores
+.idea/
+.vscode/

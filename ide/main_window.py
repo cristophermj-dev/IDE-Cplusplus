@@ -20,6 +20,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext
 from tkinter import font as tkfont
 import subprocess
+import shutil
 import threading
 from datetime import datetime
 
@@ -2612,8 +2613,7 @@ class MainWindow(tk.Tk):
     def show_debug_settings(self):
         """Muestra la configuración del depurador."""
         info = self.compiler.get_compiler_info()
-        gdb_path = subprocess.run(["which", "gdb"], capture_output=True, text=True)
-        gdb_available = gdb_path.returncode == 0
+        gdb_available = shutil.which("gdb") is not None
 
         messagebox.showinfo(
             "Configuración del depurador",

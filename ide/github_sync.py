@@ -22,6 +22,7 @@ import base64
 import subprocess
 import urllib.request
 import urllib.parse
+import platform
 
 # --- Constantes de configuración global (por usuario) ---
 HOME = os.path.expanduser("~")
@@ -35,6 +36,13 @@ GITHUB_HTTPS = "https://github.com"
 
 class GitHubError(Exception):
     """Excepción genérica de la sincronización con GitHub."""
+
+
+def _windows_creation_flags():
+    """Flags de subprocess para evitar ventanas de consola en Windows."""
+    if platform.system() == "Windows":
+        return getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+    return 0
 
 
 def _run(cmd, cwd=None, env=None, check=True):
@@ -61,6 +69,7 @@ def _run(cmd, cwd=None, env=None, check=True):
         env=full_env,
         capture_output=True,
         text=True,
+        creationflags=_windows_creation_flags(),
     )
     output = (proc.stdout or "") + (proc.stderr or "")
     output = output.strip()

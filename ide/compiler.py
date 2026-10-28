@@ -16,6 +16,19 @@ import sys
 import platform
 
 
+def _windows_creation_flags():
+    """Devuelve los flags de creación de subprocess para Windows.
+
+    En Windows, cuando la aplicación se ejecuta como un ejecutable
+    gráfico (sin consola), los procesos hijos (compilador, programa o
+    GDB) mostrarían una ventana de consola parpadeante. CREATE_NO_WINDOW
+    evita ese comportamiento. En otros sistemas devuelve 0 (sin efecto).
+    """
+    if platform.system() == "Windows":
+        return getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+    return 0
+
+
 class Compiler:
     """Maneja la compilación, ejecución y depuración de código C++.
 
@@ -58,7 +71,8 @@ class Compiler:
         for name, cmd in candidates:
             try:
                 result = subprocess.run(
-                    cmd, capture_output=True, text=True, timeout=5
+                    cmd, capture_output=True, text=True, timeout=5,
+                    creationflags=_windows_creation_flags(),
                 )
                 if result.returncode in (0, 1):  # cl puede retornar 1
                     self.compiler_name = name
@@ -185,6 +199,7 @@ class Compiler:
                 stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,
+                creationflags=_windows_creation_flags(),
             )
 
             stdout_lines = []
@@ -281,6 +296,7 @@ class Compiler:
                 text=True,
                 bufsize=1,
                 cwd=cwd,
+                creationflags=_windows_creation_flags(),
             )
 
             # Leer stdout y stderr en hilos separados para evitar bloqueos
@@ -441,6 +457,7 @@ class Compiler:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                creationflags=_windows_creation_flags(),
             )
             stdout, stderr = self.process.communicate()
 
@@ -524,6 +541,7 @@ class Compiler:
                     subprocess.run(
                         ["taskkill", "/F", "/T", "/PID", str(self.process.pid)],
                         capture_output=True,
+                        creationflags=_windows_creation_flags(),
                     )
             except Exception:
                 try:
