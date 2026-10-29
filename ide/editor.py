@@ -1,10 +1,8 @@
-"""
-Editor de código con números de línea para MeriCode C++.
-
-Este módulo contiene la clase LineNumbers que dibuja los números
-de línea en un canvas Tkinter, sincronizados con el widget Text
-del editor de código.
-"""
+# Editor de código con números de línea para DevQbo.
+#
+# Este módulo contiene la clase LineNumbers que dibuja los números
+# de línea en un canvas Tkinter, sincronizados con el widget Text
+# del editor de código.
 
 import tkinter as tk
 from tkinter import font as tkfont
@@ -13,23 +11,20 @@ from .theme import ThemeManager
 
 
 class LineNumbers(tk.Canvas):
-    """Canvas que muestra los números de línea sincronizado con el editor.
-
-    Esta clase se encarga de dibujar los números de línea al lado
-    del editor de texto y mantenerlos actualizados cuando el usuario
-    edita, desplaza o cambia el contenido del editor.
-    """
+    # Canvas que muestra los números de línea sincronizado con el editor.
+    #
+    # Esta clase se encarga de dibujar los números de línea al lado
+    # del editor de texto y mantenerlos actualizados cuando el usuario
+    # edita, desplaza o cambia el contenido del editor.
 
     def __init__(self, parent, text_widget, theme_manager=None, **kwargs):
-        """
-        Inicializa el canvas de números de línea.
-
-        Args:
-            parent: Widget padre donde se coloca el canvas.
-            text_widget: Widget Text al que acompañan los números de línea.
-            theme_manager: Gestor de temas (opcional, usa el predeterminado).
-            **kwargs: Argumentos adicionales para tk.Canvas.
-        """
+        # Inicializa el canvas de números de línea.
+        #
+        # Args:
+        # parent: Widget padre donde se coloca el canvas.
+        # text_widget: Widget Text al que acompañan los números de línea.
+        # theme_manager: Gestor de temas (opcional, usa el predeterminado).
+        # **kwargs: Argumentos adicionales para tk.Canvas.
         super().__init__(parent, width=50, **kwargs)
         self.text_widget = text_widget
         self.theme_manager = theme_manager or ThemeManager()
@@ -46,13 +41,13 @@ class LineNumbers(tk.Canvas):
         self._update()
 
     def apply_theme(self):
-        """Reaplica los colores del tema al canvas de números de línea."""
+        # Reaplica los colores del tema al canvas de números de línea.
         colors = self.theme_manager.get_colors()
         self.configure(bg=colors["line_number_bg"])
         self._update()
 
     def _update(self, event=None):
-        """Actualiza los números de línea visibles en el canvas."""
+        # Actualiza los números de línea visibles en el canvas.
         try:
             # Limpiar el canvas antes de redibujar
             self.delete("all")
@@ -93,15 +88,13 @@ class LineNumbers(tk.Canvas):
             pass
 
     def _get_line_y(self, line):
-        """
-        Obtiene la coordenada Y de una línea del editor.
-
-        Args:
-            line: Número de línea a localizar.
-
-        Returns:
-            int: Coordenada Y en píxeles, o None si no se puede calcular.
-        """
+        # Obtiene la coordenada Y de una línea del editor.
+        #
+        # Args:
+        # line: Número de línea a localizar.
+        #
+        # Returns:
+        # int: Coordenada Y en píxeles, o None si no se puede calcular.
         try:
             bbox = self.text_widget.bbox(f"{line}.0")
             if bbox:
@@ -111,7 +104,7 @@ class LineNumbers(tk.Canvas):
         return None
 
     def _line_height(self):
-        """Devuelve la altura de una línea del editor en píxeles."""
+        # Devuelve la altura de una línea del editor en píxeles.
         try:
             info = self.text_widget.dlineinfo("1.0")
             if info:
@@ -121,7 +114,7 @@ class LineNumbers(tk.Canvas):
         return self._font.metrics("linespace")
 
     def _on_breakpoint_click(self, event):
-        """Alterna un breakpoint en la línea sobre la que se hizo clic."""
+        # Alterna un breakpoint en la línea sobre la que se hizo clic.
         line = self._get_line_at_y(event.y)
         if line is None:
             return
@@ -132,7 +125,7 @@ class LineNumbers(tk.Canvas):
         self._update()
 
     def _get_line_at_y(self, y):
-        """Calcula el número de línea del editor a partir de la coordenada Y."""
+        # Calcula el número de línea del editor a partir de la coordenada Y.
         try:
             first_line = int(self.text_widget.index("@0,0").split(".")[0])
             first_y = self._get_line_y(first_line)
@@ -153,11 +146,10 @@ class LineNumbers(tk.Canvas):
             return None
 
     def attach(self):
-        """Vincula eventos clave para mantener los números sincronizados.
-
-        Cada vez que el texto cambia, se desplaza o se modifica de
-        cualquier forma, los números de línea se vuelven a dibujar.
-        """
+        # Vincula eventos clave para mantener los números sincronizados.
+        #
+        # Cada vez que el texto cambia, se desplaza o se modifica de
+        # cualquier forma, los números de línea se vuelven a dibujar.
         self.text_widget.bind("<KeyRelease>", self._update, add="+")
         self.text_widget.bind("<MouseWheel>", self._update, add="+")
         self.text_widget.bind("<Button-4>", self._update, add="+")
@@ -188,7 +180,7 @@ class LineNumbers(tk.Canvas):
         self.text_widget.after(200, self._periodic_update)
 
     def _periodic_update(self):
-        """Actualiza periódicamente mientras el widget exista."""
+        # Actualiza periódicamente mientras el widget exista.
         try:
             if self.winfo_exists():
                 self._update()

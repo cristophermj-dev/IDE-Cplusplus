@@ -1,6 +1,6 @@
 # 🪟 Generar el ejecutable (.exe) de Windows
 
-Este documento explica cómo generar el **ejecutable** de MeriCode C++ para
+Este documento explica cómo generar el **ejecutable** de DevQbo para
 Windows y el **instalador** que, además, instala automáticamente todo lo
 necesario para compilar (`g++`), depurar (`gdb`) y usar GitHub (`git`).
 
@@ -18,9 +18,9 @@ Actions** (runner de Windows) y descargar el resultado:
 2. En GitHub ve a la pestaña **Actions**.
 3. Selecciona el workflow **"Build Windows (.exe + instalador)"**.
 4. Pulsa **Run workflow** (rama `Desarrollo` o `main`).
-5. Cuando termine, entra al job y descarga el artefacto **MeriCode-Windows**:
-   - `MeriCode.exe` → ejecutable portable (no necesita instalación).
-   - `MeriCode-Setup.exe` → instalador que instala IDE + compilador + git.
+5. Cuando termine, entra al job y descarga el artefacto **DevQbo-Windows**:
+   - `DevQbo.exe` → ejecutable portable (no necesita instalación).
+   - `DevQbo-Setup.exe` → instalador que instala IDE + compilador + git.
 
 > Alternativa: también se dispara solo al crear un *tag* `v*` (`git tag v1.0.0`
 > y `git push origin v1.0.0`).
@@ -47,7 +47,7 @@ build_windows.bat
 Esto instala PyInstaller y genera:
 
 ```
-dist\MeriCode.exe
+dist\DevQbo.exe
 ```
 
 ### 2) Generar el instalador (opcional)
@@ -56,11 +56,11 @@ Abre `installer.iss` con Inno Setup 6 y pulsa **Compilar** (o ejecuta
 `ISCC.exe installer.iss`). Genera:
 
 ```
-dist\MeriCode-Setup.exe
+dist\DevQbo-Setup.exe
 ```
 
 El instalador:
-- Instala el IDE en `C:\Program Files\MeriCode`.
+- Instala el IDE en `C:\Program Files\DevQbo`.
 - Descarga e instala **Git para Windows**.
 - Descarga e instala **MinGW-w64** (que incluye `g++` y `gdb`).
 - Añade el compilador al **PATH** del sistema.

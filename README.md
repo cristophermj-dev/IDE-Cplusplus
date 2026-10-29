@@ -1,9 +1,9 @@
-# 🚀 MeriCode C++
+# 🚀 DevQbo
 
 Un IDE completo para programar en C++ desarrollado en **Python** con **Tkinter**, con interfaz gráfica moderna en tema oscuro.
 
 **Autor:** MSc. Cristopher Montero Jiménez  
-**© 2026 MERIMAD. Todos los derechos reservados.**
+**© 2026 DevQbo. Todos los derechos reservados.**
 
 ## ✨ Características
 
@@ -22,6 +22,7 @@ Un IDE completo para programar en C++ desarrollado en **Python** con **Tkinter**
 - 📚 Soporte para estándares **C++11, C++14, C++17 y C++20**
 - ⚠️ Advertencias habilitadas (`-Wall`) y símbolos de depuración (`-g`)
 - 📊 **Salida del compilador** en pestañas separadas (salida/errores)
+- ✏️ **Subrayado de errores** directamente en el editor (se activa/desactiva desde el menú Ver)
 
 ### Ejecución
 - ▶️ **Ejecutar** programas compilados desde el IDE
@@ -36,7 +37,7 @@ Un IDE completo para programar en C++ desarrollado en **Python** con **Tkinter**
 - 📍 Información de variables locales y backtrace
 
 ### GitHub
-- 🐙 **Configurar GitHub** con tu Personal Access Token (se guarda seguro en `~/.mericode/github.json`)
+- 🐙 **Configurar GitHub** con tu Personal Access Token (se guarda seguro en `~/.devqbo/github.json`)
 - 📂 **Clonar proyecto desde GitHub**: descarga un repositorio y lo abre como proyecto en el IDE
 - 🚀 **Publicar proyecto**: crea el repositorio remoto en GitHub e inicializa el proyecto (git init, .gitignore, primer commit y push)
 - 📤 **Commit y sincronizar (push)**: guarda los cambios y los sube al remoto
@@ -63,6 +64,8 @@ Un IDE completo para programar en C++ desarrollado en **Python** con **Tkinter**
   - Windows (MSYS2): `pacman -S mingw-w64-x86_64-gcc`
 - **GDB** (opcional, para depuración)
   - Ubuntu/Debian: `sudo apt install gdb`
+- **Pillow y ReportLab** (para exportar diagramas UML a PNG/PDF)
+  - Ubuntu/Debian: `sudo apt install python3-pil python3-reportlab`
 
 ## 🚀 Instalación y uso
 
@@ -92,11 +95,11 @@ python3 main.py
 ## 📁 Estructura del proyecto
 
 ```
-MeriCode-Cplusplus/
+DevQbo/
 ├── main.py                    # Punto de entrada principal
 ├── README.md                  # Documentación
 ├── ide/
-│   ├── __init__.py           # Paquete MeriCode C++
+│   ├── __init__.py           # Paquete DevQbo
 │   ├── main_window.py        # Ventana principal e interfaz gráfica
 │   ├── editor.py             # Editor con números de línea
 │   ├── syntax_highlighter.py # Resaltador de sintaxis C++
@@ -141,4 +144,4 @@ Si deseas contribuir al proyecto:
 
 ## 📄 Licencia
 
-© 2026 MERIMAD. Todos los derechos reservados.
+© 2026 DevQbo. Todos los derechos reservados.

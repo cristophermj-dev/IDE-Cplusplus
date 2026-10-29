@@ -1,10 +1,8 @@
-"""
-Consola de salida para MeriCode C++.
-
-Este módulo proporciona el panel de consola inferior del IDE,
-con pestañas para mostrar la salida del programa, los errores
-de compilación y la información de depuración.
-"""
+# Consola de salida para DevQbo.
+#
+# Este módulo proporciona el panel de consola inferior del IDE,
+# con pestañas para mostrar la salida del programa, los errores
+# de compilación y la información de depuración.
 
 import tkinter as tk
 from tkinter import ttk
@@ -13,13 +11,12 @@ from .theme import ThemeManager
 
 
 class ConsolePanel(ttk.Frame):
-    """Panel de consola con pestañas para salida, errores y depuración.
-
-    La consola tiene tres pestañas:
-    - Salida: Muestra la salida estándar de los programas ejecutados.
-    - Errores: Muestra los errores de compilación.
-    - Depuración: Muestra la información de las sesiones de GDB.
-    """
+    # Panel de consola con pestañas para salida, errores y depuración.
+    #
+    # La consola tiene tres pestañas:
+    # - Salida: Muestra la salida estándar de los programas ejecutados.
+    # - Errores: Muestra los errores de compilación.
+    # - Depuración: Muestra la información de las sesiones de GDB.
 
     # Colores estáticos por defecto (serán reemplazados por el tema)
     COLORS = {
@@ -32,14 +29,12 @@ class ConsolePanel(ttk.Frame):
     }
 
     def __init__(self, parent, theme_manager=None, **kwargs):
-        """
-        Inicializa el panel de consola.
-
-        Args:
-            parent: Widget padre del panel.
-            theme_manager: Gestor de temas (opcional).
-            **kwargs: Argumentos adicionales para ttk.Frame.
-        """
+        # Inicializa el panel de consola.
+        #
+        # Args:
+        # parent: Widget padre del panel.
+        # theme_manager: Gestor de temas (opcional).
+        # **kwargs: Argumentos adicionales para ttk.Frame.
         super().__init__(parent, **kwargs)
         self.theme_manager = theme_manager or ThemeManager()
         self._input_callback = None   # Función que recibe la entrada del usuario
@@ -47,7 +42,7 @@ class ConsolePanel(ttk.Frame):
         self._build_ui()
 
     def apply_theme(self):
-        """Reaplica los colores del tema a todos los widgets de la consola."""
+        # Reaplica los colores del tema a todos los widgets de la consola.
         colors = self.theme_manager.get_colors()
         self.COLORS["background"] = colors["bg"]
         self.COLORS["foreground"] = colors["fg"]
@@ -71,7 +66,7 @@ class ConsolePanel(ttk.Frame):
             text.tag_configure("normal", foreground=self.COLORS["foreground"])
 
     def _build_ui(self):
-        """Construye la interfaz de la consola."""
+        # Construye la interfaz de la consola.
         # Barra de herramientas superior de la consola
         toolbar = ttk.Frame(self)
         toolbar.pack(fill="x", padx=2, pady=2)
@@ -113,30 +108,26 @@ class ConsolePanel(ttk.Frame):
         self.debug_text = self._create_text_widget(self.debug_frame)
 
     def _create_tab(self, title, bg):
-        """
-        Crea una pestaña en el notebook de la consola.
-
-        Args:
-            title: Título de la pestaña.
-            bg: Color de fondo (se actualizará con el tema).
-
-        Returns:
-            ttk.Frame: El frame de la pestaña creada.
-        """
+        # Crea una pestaña en el notebook de la consola.
+        #
+        # Args:
+        # title: Título de la pestaña.
+        # bg: Color de fondo (se actualizará con el tema).
+        #
+        # Returns:
+        # ttk.Frame: El frame de la pestaña creada.
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text=title)
         return frame
 
     def _create_text_widget(self, parent):
-        """
-        Crea un widget de texto estilizado para la consola.
-
-        Args:
-            parent: Widget padre del texto.
-
-        Returns:
-            tk.Text: Widget de texto configurado para la consola.
-        """
+        # Crea un widget de texto estilizado para la consola.
+        #
+        # Args:
+        # parent: Widget padre del texto.
+        #
+        # Returns:
+        # tk.Text: Widget de texto configurado para la consola.
         text = tk.Text(
             parent,
             bg=self.COLORS["background"],
@@ -167,14 +158,12 @@ class ConsolePanel(ttk.Frame):
         return text
 
     def _write(self, text_widget, message, tag="normal"):
-        """
-        Escribe un mensaje en un widget de texto de la consola.
-
-        Args:
-            text_widget: Widget de texto donde escribir.
-            message: Mensaje a escribir.
-            tag: Etiqueta de color a utilizar.
-        """
+        # Escribe un mensaje en un widget de texto de la consola.
+        #
+        # Args:
+        # text_widget: Widget de texto donde escribir.
+        # message: Mensaje a escribir.
+        # tag: Etiqueta de color a utilizar.
         text_widget.configure(state="normal")
         text_widget.insert("end", message, tag)
         # Auto-scroll al final si está activado
@@ -183,47 +172,45 @@ class ConsolePanel(ttk.Frame):
         text_widget.configure(state="disabled")
 
     def output(self, message):
-        """Escribe un mensaje normal en la pestaña de salida."""
+        # Escribe un mensaje normal en la pestaña de salida.
         self._write(self.output_text, message, "normal")
 
     def error(self, message):
-        """Escribe un mensaje de error (rojo) en la pestaña de errores."""
+        # Escribe un mensaje de error (rojo) en la pestaña de errores.
         self._write(self.error_text, message, "error")
 
     def debug(self, message):
-        """Escribe un mensaje de depuración en la pestaña de depuración."""
+        # Escribe un mensaje de depuración en la pestaña de depuración.
         self._write(self.debug_text, message, "info")
 
     def success(self, message):
-        """Escribe un mensaje de éxito (verde) en la pestaña de salida."""
+        # Escribe un mensaje de éxito (verde) en la pestaña de salida.
         self._write(self.output_text, message, "success")
 
     def warning(self, message):
-        """Escribe un mensaje de advertencia (amarillo) en la pestaña de salida."""
+        # Escribe un mensaje de advertencia (amarillo) en la pestaña de salida.
         self._write(self.output_text, message, "warning")
 
     def info(self, message):
-        """Escribe un mensaje informativo (azul) en la pestaña de salida."""
+        # Escribe un mensaje informativo (azul) en la pestaña de salida.
         self._write(self.output_text, message, "info")
 
     def set_input_callback(self, callback):
-        """Registra la función que recibe el texto escrito por el usuario.
-
-        Args:
-            callback: Función que recibe un string (la línea escrita).
-        """
+        # Registra la función que recibe el texto escrito por el usuario.
+        #
+        # Args:
+        # callback: Función que recibe un string (la línea escrita).
         self._input_callback = callback
 
     def enable_input(self, enabled=True):
-        """Habilita o deshabilita la captura de entrada en la pestaña Salida.
-
-        Cuando está habilitada, el usuario puede escribir en el campo de
-        entrada y presionar Enter para enviar el texto al programa en
-        ejecución (por ejemplo, para responder a un cin).
-
-        Args:
-            enabled: True para permitir la entrada, False para desactivarla.
-        """
+        # Habilita o deshabilita la captura de entrada en la pestaña Salida.
+        #
+        # Cuando está habilitada, el usuario puede escribir en el campo de
+        # entrada y presionar Enter para enviar el texto al programa en
+        # ejecución (por ejemplo, para responder a un cin).
+        #
+        # Args:
+        # enabled: True para permitir la entrada, False para desactivarla.
         self._input_enabled = enabled
         if enabled:
             self.input_var.set("")
@@ -233,7 +220,7 @@ class ConsolePanel(ttk.Frame):
             self.input_entry.configure(state="disabled")
 
     def _on_input_return(self, event=None):
-        """Envía la línea escrita por el usuario al programa en ejecución."""
+        # Envía la línea escrita por el usuario al programa en ejecución.
         if not self._input_enabled:
             return "break"
 
@@ -250,38 +237,38 @@ class ConsolePanel(ttk.Frame):
         return "break"
 
     def clear_all(self):
-        """Limpia todas las pestañas de la consola."""
+        # Limpia todas las pestañas de la consola.
         for text in (self.output_text, self.error_text, self.debug_text):
             text.configure(state="normal")
             text.delete("1.0", "end")
             text.configure(state="disabled")
 
     def clear_output(self):
-        """Limpia solo la pestaña de salida."""
+        # Limpia solo la pestaña de salida.
         self.output_text.configure(state="normal")
         self.output_text.delete("1.0", "end")
         self.output_text.configure(state="disabled")
 
     def clear_errors(self):
-        """Limpia solo la pestaña de errores."""
+        # Limpia solo la pestaña de errores.
         self.error_text.configure(state="normal")
         self.error_text.delete("1.0", "end")
         self.error_text.configure(state="disabled")
 
     def clear_debug(self):
-        """Limpia solo la pestaña de depuración."""
+        # Limpia solo la pestaña de depuración.
         self.debug_text.configure(state="normal")
         self.debug_text.delete("1.0", "end")
         self.debug_text.configure(state="disabled")
 
     def show_output_tab(self):
-        """Muestra la pestaña de salida."""
+        # Muestra la pestaña de salida.
         self.notebook.select(self.output_frame)
 
     def show_error_tab(self):
-        """Muestra la pestaña de errores."""
+        # Muestra la pestaña de errores.
         self.notebook.select(self.error_frame)
 
     def show_debug_tab(self):
-        """Muestra la pestaña de depuración."""
+        # Muestra la pestaña de depuración.
         self.notebook.select(self.debug_frame)

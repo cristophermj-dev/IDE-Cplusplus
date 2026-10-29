@@ -1,20 +1,18 @@
-"""
-Sincronización con GitHub para MeriCode C++.
-
-Este módulo permite publicar un proyecto en GitHub y mantenerlo
-sincronizado (push / pull). Usa:
-
-- git (a través de subprocess) para las operaciones de repositorio
-  local y remoto.
-- La GitHub REST API (con urllib de la librería estándar, sin
-  dependencias externas) para validar el token y crear repositorios.
-
-Seguridad:
-El token (Personal Access Token) se guarda en ~/.mericode/github.json,
-fuera del proyecto, y para las operaciones autenticadas se inyecta por
-variables de entorno en cada invocación de git, de modo que el token
-NO queda escrito en .git/config ni en archivos versionados.
-"""
+# Sincronización con GitHub para DevQbo.
+#
+# Este módulo permite publicar un proyecto en GitHub y mantenerlo
+# sincronizado (push / pull). Usa:
+#
+# - git (a través de subprocess) para las operaciones de repositorio
+# local y remoto.
+# - La GitHub REST API (con urllib de la librería estándar, sin
+# dependencias externas) para validar el token y crear repositorios.
+#
+# Seguridad:
+# El token (Personal Access Token) se guarda en ~/.devqbo/github.json,
+# fuera del proyecto, y para las operaciones autenticadas se inyecta por
+# variables de entorno en cada invocación de git, de modo que el token
+# NO queda escrito en .git/config ni en archivos versionados.
 
 import os
 import json
@@ -26,7 +24,7 @@ import platform
 
 # --- Constantes de configuración global (por usuario) ---
 HOME = os.path.expanduser("~")
-CONFIG_DIR = os.path.join(HOME, ".mericode")
+CONFIG_DIR = os.path.join(HOME, ".devqbo")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "github.json")
 
 # URL base de la GitHub REST API
@@ -35,31 +33,31 @@ GITHUB_HTTPS = "https://github.com"
 
 
 class GitHubError(Exception):
-    """Excepción genérica de la sincronización con GitHub."""
+    # Excepción genérica de la sincronización con GitHub.
+    pass
 
 
 def _windows_creation_flags():
-    """Flags de subprocess para evitar ventanas de consola en Windows."""
+    # Flags de subprocess para evitar ventanas de consola en Windows.
     if platform.system() == "Windows":
         return getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
     return 0
 
 
 def _run(cmd, cwd=None, env=None, check=True):
-    """Ejecuta un comando externo y devuelve su salida combinada.
-
-    Args:
-        cmd: Lista de argumentos del comando.
-        cwd: Directorio de trabajo del comando (opcional).
-        env: Variables de entorno adicionales (opcional).
-        check: Si True, lanza GitHubError cuando el código de salida != 0.
-
-    Returns:
-        str: Salida estándar + salida de error del comando.
-
-    Raises:
-        GitHubError: Si el comando falla (cuando check=True).
-    """
+    # Ejecuta un comando externo y devuelve su salida combinada.
+    #
+    # Args:
+    # cmd: Lista de argumentos del comando.
+    # cwd: Directorio de trabajo del comando (opcional).
+    # env: Variables de entorno adicionales (opcional).
+    # check: Si True, lanza GitHubError cuando el código de salida != 0.
+    #
+    # Returns:
+    # str: Salida estándar + salida de error del comando.
+    #
+    # Raises:
+    # GitHubError: Si el comando falla (cuando check=True).
     full_env = os.environ.copy()
     if env:
         full_env.update(env)
@@ -79,11 +77,10 @@ def _run(cmd, cwd=None, env=None, check=True):
 
 
 def _auth_env(token):
-    """Construye el entorno con la cabecera de autorización de git.
-
-    Se configura GIT_CONFIG_* para inyectar un Authorization header
-    sin escribir el token en ningún archivo de configuración.
-    """
+    # Construye el entorno con la cabecera de autorización de git.
+    #
+    # Se configura GIT_CONFIG_* para inyectar un Authorization header
+    # sin escribir el token en ningún archivo de configuración.
     # Basic con usuario arbitrario 'x-access-token' y contraseña = token.
     credentials = base64.b64encode(
         ("x-access-token:" + token).encode("utf-8")
@@ -100,25 +97,23 @@ def _auth_env(token):
 
 
 class GitHubSync:
-    """Gestor de sincronización con GitHub.
-
-    Se encarga de la configuración global (token, dueño, repositorio),
-    las operaciones con git y la creación de repositorios en GitHub.
-    """
+    # Gestor de sincronización con GitHub.
+    #
+    # Se encarga de la configuración global (token, dueño, repositorio),
+    # las operaciones con git y la creación de repositorios en GitHub.
 
     def __init__(self):
         self._config = None
 
     # ------------------------------------------------------------------
-    # Configuración global (~/.mericode/github.json)
+    # Configuración global (~/.devqbo/github.json)
     # ------------------------------------------------------------------
 
     def load_config(self):
-        """Carga la configuración global guardada en disco.
-
-        Returns:
-            dict: Configuración (token, owner, repo, private).
-        """
+        # Carga la configuración global guardada en disco.
+        #
+        # Returns:
+        # dict: Configuración (token, owner, repo, private).
         if self._config is not None:
             return self._config
         cfg = {"token": "", "owner": "", "repo": "", "private": False}
@@ -133,11 +128,10 @@ class GitHubSync:
         return cfg
 
     def save_config(self, cfg=None):
-        """Guarda la configuración global en disco.
-
-        Args:
-            cfg: Configuración a guardar (si es None se guarda la actual).
-        """
+        # Guarda la configuración global en disco.
+        #
+        # Args:
+        # cfg: Configuración a guardar (si es None se guarda la actual).
         if cfg is None:
             cfg = self.load_config()
         self._config = cfg
@@ -151,14 +145,13 @@ class GitHubSync:
             pass
 
     def set_credentials(self, token, owner=None, repo=None, private=None):
-        """Actualiza las credenciales guardadas de forma persistente.
-
-        Args:
-            token: Personal Access Token de GitHub.
-            owner: Usuario/organización propietario del repositorio.
-            repo: Nombre del repositorio.
-            private: True si el repositorio debe ser privado.
-        """
+        # Actualiza las credenciales guardadas de forma persistente.
+        #
+        # Args:
+        # token: Personal Access Token de GitHub.
+        # owner: Usuario/organización propietario del repositorio.
+        # repo: Nombre del repositorio.
+        # private: True si el repositorio debe ser privado.
         cfg = self.load_config()
         cfg["token"] = (token or "").strip()
         if owner is not None:
@@ -171,7 +164,7 @@ class GitHubSync:
         return cfg
 
     def has_token(self):
-        """Indica si existen credenciales configuradas."""
+        # Indica si existen credenciales configuradas.
         cfg = self.load_config()
         return bool(cfg.get("token"))
 # ------------------------------------------------------------------
@@ -179,24 +172,23 @@ class GitHubSync:
     # ------------------------------------------------------------------
 
     def _api_request(self, token, method, url, payload=None):
-        """Realiza una petición a la GitHub REST API.
-
-        Args:
-            token: Personal Access Token.
-            method: Método HTTP (GET, POST...).
-            url: URL completa de la petición.
-            payload: Diccionario a enviar como JSON (opcional).
-
-        Returns:
-            dict: Respuesta JSON de la API.
-
-        Raises:
-            GitHubError: Si la API devuelve un error.
-        """
+        # Realiza una petición a la GitHub REST API.
+        #
+        # Args:
+        # token: Personal Access Token.
+        # method: Método HTTP (GET, POST...).
+        # url: URL completa de la petición.
+        # payload: Diccionario a enviar como JSON (opcional).
+        #
+        # Returns:
+        # dict: Respuesta JSON de la API.
+        #
+        # Raises:
+        # GitHubError: Si la API devuelve un error.
         headers = {
             "Authorization": "Bearer " + token,
             "Accept": "application/vnd.github+json",
-            "User-Agent": "MeriCode-Cplusplus",
+            "User-Agent": "DevQbo",
         }
         data = None
         if payload is not None:
@@ -235,20 +227,18 @@ class GitHubSync:
             )
 
     def get_authenticated_user(self, token):
-        """Devuelve el login del usuario autenticado con el token.
-
-        Returns:
-            str: Login (nombre de usuario) de GitHub.
-        """
+        # Devuelve el login del usuario autenticado con el token.
+        #
+        # Returns:
+        # str: Login (nombre de usuario) de GitHub.
         data = self._api_request(token, "GET", GITHUB_API + "/user")
         return data.get("login", "")
 
     def repo_exists(self, token, owner, repo):
-        """Indica si existe un repositorio en GitHub.
-
-        Returns:
-            bool: True si el repositorio existe.
-        """
+        # Indica si existe un repositorio en GitHub.
+        #
+        # Returns:
+        # bool: True si el repositorio existe.
         url = (
             f"{GITHUB_API}/repos/"
             f"{urllib.parse.quote(owner)}/{urllib.parse.quote(repo)}"
@@ -262,17 +252,16 @@ class GitHubSync:
             raise
 
     def create_repo(self, token, name, private=False, description=""):
-        """Crea un repositorio bajo el usuario autenticado.
-
-        Args:
-            token: Personal Access Token.
-            name: Nombre del repositorio.
-            private: True para crearlo privado.
-            description: Descripción opcional del repositorio.
-
-        Returns:
-            dict: Datos del repositorio creado.
-        """
+        # Crea un repositorio bajo el usuario autenticado.
+        #
+        # Args:
+        # token: Personal Access Token.
+        # name: Nombre del repositorio.
+        # private: True para crearlo privado.
+        # description: Descripción opcional del repositorio.
+        #
+        # Returns:
+        # dict: Datos del repositorio creado.
         payload = {
             "name": name,
             "private": bool(private),
@@ -286,15 +275,14 @@ class GitHubSync:
     # ------------------------------------------------------------------
 
     def is_repo(self, project_path):
-        """Indica si el directorio del proyecto ya es un repositorio git."""
+        # Indica si el directorio del proyecto ya es un repositorio git.
         return os.path.isdir(os.path.join(project_path, ".git"))
 
     def ensure_repo(self, project_path):
-        """Inicializa el repositorio git si el proyecto aún no es uno.
-
-        Además asigna un usuario local (name/email) si no existe, para
-        que el primer commit no falle.
-        """
+        # Inicializa el repositorio git si el proyecto aún no es uno.
+        #
+        # Además asigna un usuario local (name/email) si no existe, para
+        # que el primer commit no falle.
         if not self.is_repo(project_path):
             _run(["git", "init"], cwd=project_path)
         # Asegurar un usuario local para poder hacer commits.
@@ -304,35 +292,33 @@ class GitHubSync:
             name = ""
         if not name:
             cfg = self.load_config()
-            user = cfg.get("owner") or "MeriCode User"
+            user = cfg.get("owner") or "DevQbo User"
             _run(["git", "config", "user.name", user], cwd=project_path)
-            email = cfg.get("owner", "") or "mericode"
+            email = cfg.get("owner", "") or "devqbo"
             _run(
                 ["git", "config", "user.email", f"{email}@users.noreply.github.com"],
                 cwd=project_path,
             )
 
     def current_branch(self, project_path):
-        """Devuelve la rama actual del repositorio.
-
-        Returns:
-            str: Nombre de la rama actual (o '' si no hay ninguna).
-        """
+        # Devuelve la rama actual del repositorio.
+        #
+        # Returns:
+        # str: Nombre de la rama actual (o '' si no hay ninguna).
         try:
             return _run(["git", "branch", "--show-current"], cwd=project_path)
         except GitHubError:
             return ""
 
     def create_gitignore(self, project_path):
-        """Crea un .gitignore por defecto si no existe.
-
-        Evita versionar artefactos de compilación.
-        """
+        # Crea un .gitignore por defecto si no existe.
+        #
+        # Evita versionar artefactos de compilación.
         gitignore = os.path.join(project_path, ".gitignore")
         if os.path.exists(gitignore):
             return
         content = (
-            "# Sobres eliminados por MeriCode (auto-generado)\n"
+            "# Sobres eliminados por DevQbo (auto-generado)\n"
             "build/\nbin/\nobj/\n*.o\n*.obj\n*.exe\n*.out\n*.class\n"
             "*.pyc\n__pycache__/\n.vs/\n.idea/\n*.cmj.save\n"
         )
@@ -340,7 +326,7 @@ class GitHubSync:
             f.write(content)
 
     def set_remote(self, project_path, owner, repo):
-        """Configura el remoto 'origin' con la URL pública (sin token)."""
+        # Configura el remoto 'origin' con la URL pública (sin token).
         url = (
             f"{GITHUB_HTTPS}/{urllib.parse.quote(owner)}/"
             f"{urllib.parse.quote(repo)}.git"
@@ -354,10 +340,9 @@ class GitHubSync:
         return url
 
     def remote_url(self, project_path):
-        """Devuelve la URL del remoto 'origin' o una cadena vacía.
-
-        Devuelve '' si no existe el remoto o si no es un repositorio git.
-        """
+        # Devuelve la URL del remoto 'origin' o una cadena vacía.
+        #
+        # Devuelve '' si no existe el remoto o si no es un repositorio git.
         if not self.is_repo(project_path):
             return ""
         out = _run(
@@ -370,7 +355,7 @@ class GitHubSync:
         return out
 
     def status(self, project_path):
-        """Devuelve el estado del repositorio (git status)."""
+        # Devuelve el estado del repositorio (git status).
         branch = self.current_branch(project_path) or "(sin commits todavía)"
         status = _run(["git", "status", "--short"], cwd=project_path, check=False)
         remote = self.remote_url(project_path)
@@ -385,28 +370,26 @@ class GitHubSync:
         return "\n".join(lines)
 
     def commit(self, project_path, message):
-        """Agrega todos los cambios y crea un commit.
-
-        Args:
-            project_path: Directorio del proyecto.
-            message: Mensaje del commit.
-
-        Returns:
-            str: Salida de git add/commit (puede avisar de que no hay cambios).
-        """
+        # Agrega todos los cambios y crea un commit.
+        #
+        # Args:
+        # project_path: Directorio del proyecto.
+        # message: Mensaje del commit.
+        #
+        # Returns:
+        # str: Salida de git add/commit (puede avisar de que no hay cambios).
         if not self.is_repo(project_path):
             self.ensure_repo(project_path)
         _run(["git", "add", "-A"], cwd=project_path)
         return _run(["git", "commit", "-m", message], cwd=project_path, check=False)
 
     def push(self, project_path, token, owner, repo, branch):
-        """Sube la rama actual al repositorio remoto.
-
-        La autenticación se inyecta por entorno (no se guarda el token).
-
-        Returns:
-            str: Salida de git push.
-        """
+        # Sube la rama actual al repositorio remoto.
+        #
+        # La autenticación se inyecta por entorno (no se guarda el token).
+        #
+        # Returns:
+        # str: Salida de git push.
         url = (
             f"{GITHUB_HTTPS}/{urllib.parse.quote(owner)}/"
             f"{urllib.parse.quote(repo)}.git"
@@ -419,11 +402,10 @@ class GitHubSync:
         )
 
     def pull(self, project_path, token, owner, repo, branch):
-        """Descarga y fusiona los cambios del repositorio remoto.
-
-        Returns:
-            str: Salida de git pull.
-        """
+        # Descarga y fusiona los cambios del repositorio remoto.
+        #
+        # Returns:
+        # str: Salida de git pull.
         url = (
             f"{GITHUB_HTTPS}/{urllib.parse.quote(owner)}/"
             f"{urllib.parse.quote(repo)}.git"
@@ -446,14 +428,13 @@ class GitHubSync:
     # ------------------------------------------------------------------
 
     def publish(self, project_path, token, owner, repo, private, message):
-        """Publica el proyecto por primera vez en GitHub.
-
-        Inicializa el repo, crea el repositorio remoto si no existe y
-        sube el primer commit.
-
-        Returns:
-            str: Resumen de la operación.
-        """
+        # Publica el proyecto por primera vez en GitHub.
+        #
+        # Inicializa el repo, crea el repositorio remoto si no existe y
+        # sube el primer commit.
+        #
+        # Returns:
+        # str: Resumen de la operación.
         if not token or not owner or not repo:
             raise GitHubError(
                 "Configura primero el token, el dueño y el repositorio."
@@ -493,7 +474,7 @@ class GitHubSync:
         return "\n".join(steps)
 
     def push_changes(self, project_path, token, owner, repo, message):
-        """Confirma los cambios locales y los sube al remoto."""
+        # Confirma los cambios locales y los sube al remoto.
         if not self.is_repo(project_path):
             raise GitHubError(
                 "El proyecto aún no es un repositorio git. Usa "
@@ -510,7 +491,7 @@ class GitHubSync:
         return f"Commit local: {commit_out}\nPush: {push_out}"
 
     def sync_pull(self, project_path, token, owner, repo):
-        """Descarga los cambios remotos al proyecto local (pull)."""
+        # Descarga los cambios remotos al proyecto local (pull).
         if not self.is_repo(project_path):
             raise GitHubError(
                 "El proyecto aún no es un repositorio git. Usa "
@@ -524,22 +505,21 @@ class GitHubSync:
         return self.pull(project_path, token, owner, repo, branch)
 
     def clone(self, parent_dir, token, owner, repo, target_name=None):
-        """Clona un repositorio de GitHub en un directorio local.
-
-        Args:
-            parent_dir: Carpeta donde se creará el proyecto clonado.
-            token: Personal Access Token (para repositorios privados).
-            owner: Usuario/organización dueño del repositorio.
-            repo: Nombre del repositorio.
-            target_name: Nombre de la carpeta local (por defecto, el
-                         nombre del repositorio).
-
-        Returns:
-            str: Ruta absoluta de la carpeta clonada.
-
-        Raises:
-            GitHubError: Si el clonado falla o la carpeta ya existe.
-        """
+        # Clona un repositorio de GitHub en un directorio local.
+        #
+        # Args:
+        # parent_dir: Carpeta donde se creará el proyecto clonado.
+        # token: Personal Access Token (para repositorios privados).
+        # owner: Usuario/organización dueño del repositorio.
+        # repo: Nombre del repositorio.
+        # target_name: Nombre de la carpeta local (por defecto, el
+        # nombre del repositorio).
+        #
+        # Returns:
+        # str: Ruta absoluta de la carpeta clonada.
+        #
+        # Raises:
+        # GitHubError: Si el clonado falla o la carpeta ya existe.
         if not owner or not repo:
             raise GitHubError("Indica el dueño y el nombre del repositorio.")
 
@@ -582,20 +562,18 @@ except Exception:  # Si no hay entorno gráfico (pruebas/headless).
 
 
 class GitHubCredentialsDialog:
-    """Diálogo para configurar el token, dueño y repositorio de GitHub.
-
-    Permite guardar las credenciales de forma persistente y validar el
-    token contra la GitHub REST API antes de guardar.
-    """
+    # Diálogo para configurar el token, dueño y repositorio de GitHub.
+    #
+    # Permite guardar las credenciales de forma persistente y validar el
+    # token contra la GitHub REST API antes de guardar.
 
     def __init__(self, parent, sync, on_saved=None):
-        """Inicializa el diálogo modal.
-
-        Args:
-            parent: Ventana padre (MainWindow).
-            sync: Instancia de GitHubSync con la configuración a editar.
-            on_saved: Callback invocado tras guardar correctamente.
-        """
+        # Inicializa el diálogo modal.
+        #
+        # Args:
+        # parent: Ventana padre (MainWindow).
+        # sync: Instancia de GitHubSync con la configuración a editar.
+        # on_saved: Callback invocado tras guardar correctamente.
         self.sync = sync
         self.on_saved = on_saved
         cfg = sync.load_config()
@@ -662,7 +640,7 @@ class GitHubCredentialsDialog:
         self._center(parent)
 
     def _center(self, parent):
-        """Centra el diálogo sobre la ventana padre."""
+        # Centra el diálogo sobre la ventana padre.
         try:
             parent.update_idletasks()
             pw, ph = parent.winfo_width(), parent.winfo_height()
@@ -675,7 +653,7 @@ class GitHubCredentialsDialog:
             pass
 
     def _save(self):
-        """Valida el token y guarda la configuración."""
+        # Valida el token y guarda la configuración.
         token = self.token_var.get().strip()
         owner = self.owner_var.get().strip()
         repo = self.repo_var.get().strip()

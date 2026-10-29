@@ -1,31 +1,26 @@
-"""
-Diálogo de buscar y reemplazar para el editor de código.
-
-Este módulo proporciona un diálogo flotante que permite buscar
-texto en el editor, buscar hacia atrás, reemplazar una ocurrencia
-o reemplazar todas las ocurrencias de un texto.
-"""
+# Diálogo de buscar y reemplazar para el editor de código.
+#
+# Este módulo proporciona un diálogo flotante que permite buscar
+# texto en el editor, buscar hacia atrás, reemplazar una ocurrencia
+# o reemplazar todas las ocurrencias de un texto.
 
 import tkinter as tk
 from tkinter import ttk
 
 
 class SearchDialog(tk.Toplevel):
-    """Diálogo flotante para buscar y reemplazar texto en el editor.
-
-    El diálogo es modal y se puede cerrar con la tecla Escape.
-    Soporta búsqueda distinguir entre mayúsculas y minúsculas,
-    buscar siguiente/anterior, reemplazar uno a uno o todos.
-    """
+    # Diálogo flotante para buscar y reemplazar texto en el editor.
+    #
+    # El diálogo es modal y se puede cerrar con la tecla Escape.
+    # Soporta búsqueda distinguir entre mayúsculas y minúsculas,
+    # buscar siguiente/anterior, reemplazar uno a uno o todos.
 
     def __init__(self, parent, text_widget):
-        """
-        Inicializa el diálogo de búsqueda.
-
-        Args:
-            parent: Ventana padre del diálogo.
-            text_widget: Widget Text del editor donde buscar.
-        """
+        # Inicializa el diálogo de búsqueda.
+        #
+        # Args:
+        # parent: Ventana padre del diálogo.
+        # text_widget: Widget Text del editor donde buscar.
         super().__init__(parent)
         self.text_widget = text_widget
         self._last_search_index = "1.0"  # Índice de la última búsqueda
@@ -47,7 +42,7 @@ class SearchDialog(tk.Toplevel):
         self.geometry(f"+{x}+{y}")
 
     def _build_ui(self):
-        """Construye la interfaz del diálogo."""
+        # Construye la interfaz del diálogo.
         main_frame = ttk.Frame(self, padding=10)
         main_frame.pack(fill="both", expand=True)
 
@@ -92,7 +87,7 @@ class SearchDialog(tk.Toplevel):
         self.status_label.pack(fill="x", pady=(5, 0))
 
     def _create_bindings(self):
-        """Crea los atajos de teclado del diálogo."""
+        # Crea los atajos de teclado del diálogo.
         # Enter busca la siguiente ocurrencia
         self.search_entry.bind("<Return>", lambda e: self.find_next())
         # Shift+Enter busca la anterior
@@ -104,23 +99,20 @@ class SearchDialog(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self.destroy)
 
     def _get_search_string(self):
-        """Obtiene el texto a buscar del campo de entrada.
-
-        Returns:
-            str: El texto a buscar.
-        """
+        # Obtiene el texto a buscar del campo de entrada.
+        #
+        # Returns:
+        # str: El texto a buscar.
         return self.search_entry.get()
 
     def _search_pattern(self, start_index):
-        """
-        Busca el patrón desde un índice dado.
-
-        Args:
-            start_index: Índice Tkinter desde donde iniciar la búsqueda.
-
-        Returns:
-            str: Índice de la coincidencia, o None si no se encontró.
-        """
+        # Busca el patrón desde un índice dado.
+        #
+        # Args:
+        # start_index: Índice Tkinter desde donde iniciar la búsqueda.
+        #
+        # Returns:
+        # str: Índice de la coincidencia, o None si no se encontró.
         search = self._get_search_string()
         if not search:
             self.status_label.config(text="Ingrese un texto para buscar")
@@ -137,7 +129,7 @@ class SearchDialog(tk.Toplevel):
             return None
 
     def find_next(self):
-        """Busca la siguiente ocurrencia del texto."""
+        # Busca la siguiente ocurrencia del texto.
         search = self._get_search_string()
         if not search:
             return
@@ -169,7 +161,7 @@ class SearchDialog(tk.Toplevel):
             text=f"Encontrado en línea {match.split('.')[0]}")
 
     def find_previous(self):
-        """Busca la ocurrencia anterior del texto."""
+        # Busca la ocurrencia anterior del texto.
         search = self._get_search_string()
         if not search:
             return
@@ -206,7 +198,7 @@ class SearchDialog(tk.Toplevel):
             text=f"Encontrado en línea {match.split('.')[0]}")
 
     def replace_one(self):
-        """Reemplaza la ocurrencia actualmente seleccionada."""
+        # Reemplaza la ocurrencia actualmente seleccionada.
         search = self._get_search_string()
         replace = self.replace_entry.get()
         if not search:
@@ -236,7 +228,7 @@ class SearchDialog(tk.Toplevel):
         self.find_next()
 
     def replace_all(self):
-        """Reemplaza todas las ocurrencias del texto en el documento."""
+        # Reemplaza todas las ocurrencias del texto en el documento.
         search = self._get_search_string()
         replace = self.replace_entry.get()
         if not search:

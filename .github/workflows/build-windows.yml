@@ -23,22 +23,22 @@ jobs:
         shell: pwsh
         run: python -m pip install --upgrade pip pyinstaller
 
-      - name: Compilar MeriCode.exe
+      - name: Compilar DevQbo.exe
         shell: pwsh
-        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name MeriCode main.py
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name DevQbo main.py
 
       - name: Instalar Inno Setup
         shell: pwsh
         run: choco install innosetup -y --no-progress
 
-      - name: Construir el instalador (MeriCode-Setup.exe)
+      - name: Construir el instalador (DevQbo-Setup.exe)
         shell: pwsh
         run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
 
       - name: Publicar artefactos
         uses: actions/upload-artifact@v4
         with:
-          name: MeriCode-Windows
+          name: DevQbo-Windows
           path: |
-            dist\MeriCode.exe
-            dist\MeriCode-Setup.exe
+            dist\DevQbo.exe
+            dist\DevQbo-Setup.exe

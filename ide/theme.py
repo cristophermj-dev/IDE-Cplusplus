@@ -1,13 +1,11 @@
-"""
-Sistema de temas (claro/oscuro) para MeriCode C++.
-
-Este módulo gestiona los colores de toda la interfaz del IDE,
-permitiendo alternar entre un tema claro y uno oscuro.
-"""
+# Sistema de temas (claro/oscuro) para DevQbo.
+#
+# Este módulo gestiona los colores de toda la interfaz del IDE,
+# permitiendo alternar entre un tema claro y uno oscuro.
 
 
 class ThemeManager:
-    """Gestiona los temas disponibles del IDE."""
+    # Gestiona los temas disponibles del IDE.
 
     # ==============================
     # TEMA OSCURO (estilo VS Code Dark)
@@ -226,19 +224,17 @@ class ThemeManager:
         self.current = "light"
 
     def get_colors(self):
-        """Obtiene los colores del tema actual."""
+        # Obtiene los colores del tema actual.
         return self.THEMES[self.current]
 
     def set_theme(self, name):
-        """
-        Cambia el tema actual.
-
-        Args:
-            name: Nombre del tema ('light' o 'dark')
-
-        Returns:
-            bool: True si el tema se cambió correctamente, False si no existe.
-        """
+        # Cambia el tema actual.
+        #
+        # Args:
+        # name: Nombre del tema ('light' o 'dark')
+        #
+        # Returns:
+        # bool: True si el tema se cambió correctamente, False si no existe.
         # Verificar que el tema solicitado exista
         if name in self.THEMES:
             self.current = name
@@ -246,21 +242,17 @@ class ThemeManager:
         return False
 
     def toggle(self):
-        """
-        Alterna entre claro y oscuro.
-
-        Returns:
-            str: Nombre del tema activo después del cambio.
-        """
+        # Alterna entre claro y oscuro.
+        #
+        # Returns:
+        # str: Nombre del tema activo después del cambio.
         # Si el tema actual es oscuro, cambiar a claro y viceversa
         self.current = "light" if self.current == "dark" else "dark"
         return self.current
 
     def is_dark(self):
-        """
-        Verifica si el tema actual es oscuro.
-
-        Returns:
-            bool: True si el tema activo es oscuro.
-        """
+        # Verifica si el tema actual es oscuro.
+        #
+        # Returns:
+        # bool: True si el tema activo es oscuro.
         return self.current == "dark"

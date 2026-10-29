@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""
-MeriCode C++ - Un IDE completo para programar en C++ con Python y Tkinter.
-
-Este es el punto de entrada principal de la aplicación.
-Ejecuta la ventana principal del IDE con todos sus componentes:
-editor, compilador, depurador, explorador de archivos, etc.
-"""
+# DevQbo - Un IDE completo para programar en C++ con Python y Tkinter.
+#
+# Este es el punto de entrada principal de la aplicación.
+# Ejecuta la ventana principal del IDE con todos sus componentes:
+# editor, compilador, depurador, explorador de archivos, etc.
 
 import sys
 import os
@@ -17,12 +15,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
 def main():
-    """Función principal de la aplicación.
-
-    Importa e inicia la ventana principal del IDE.
-    Maneja errores de importación y errores generales
-    mostrando mensajes claros al usuario.
-    """
+    # Función principal de la aplicación.
+    #
+    # Importa e inicia la ventana principal del IDE.
+    # Maneja errores de importación y errores generales
+    # mostrando mensajes claros al usuario.
     try:
         # Importar la función run del módulo main_window
         from ide.main_window import run

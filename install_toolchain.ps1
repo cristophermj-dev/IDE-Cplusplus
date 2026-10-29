@@ -1,6 +1,6 @@
 # =============================================================================
 # install_toolchain.ps1
-# Instala Git para Windows y MinGW-w64 (g++ y gdb) para MeriCode C++.
+# Instala Git para Windows y MinGW-w64 (g++ y gdb) para DevQbo.
 # Se ejecuta desde el instalador (con privilegios de administrador).
 # =============================================================================
 

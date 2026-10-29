@@ -1,17 +1,15 @@
-"""
-Ventana principal de MeriCode C++ - interfaz gráfica completa.
-
-Este módulo contiene la ventana principal del IDE con todas sus
-funcionalidades:
-- Editor de código con resaltado de sintaxis y números de línea.
-- Explorador de archivos con archivos abiertos y árbol de directorios.
-- Barra de herramientas con acciones de archivo, proyecto y compilación.
-- Menús completos (Archivo, Proyecto, Editar, Ver, Compilar, Ejecutar, Depurar, Ayuda).
-- Consola de salida con pestañas para salida, errores y depuración.
-- Gestión de proyectos .cmj y creación de clases.
-- Compilación, ejecución y depuración de programas C++.
-- Temas claro y oscuro.
-"""
+# Ventana principal de DevQbo - interfaz gráfica completa.
+#
+# Este módulo contiene la ventana principal del IDE con todas sus
+# funcionalidades:
+# - Editor de código con resaltado de sintaxis y números de línea.
+# - Explorador de archivos con archivos abiertos y árbol de directorios.
+# - Barra de herramientas con acciones de archivo, proyecto y compilación.
+# - Menús completos (Archivo, Proyecto, Editar, Ver, Compilar, Ejecutar, Depurar, Ayuda).
+# - Consola de salida con pestañas para salida, errores y depuración.
+# - Gestión de proyectos .cmj y creación de clases.
+# - Compilación, ejecución y depuración de programas C++.
+# - Temas claro y oscuro.
 
 import os
 import re
@@ -50,14 +48,13 @@ else:
 
 
 class CodeEditor(tk.Frame):
-    """Editor de código con resaltado de sintaxis y números de línea.
-
-    Esta clase representa una pestaña individual del editor de código.
-    Incluye un widget Text de Tkinter con resaltado de sintaxis C++,
-    números de línea sincronizados, barras de desplazamiento horizontal
-    y vertical, autocompletado de brackets y comillas, indentación
-    automática y resaltado de la línea actual del cursor.
-    """
+    # Editor de código con resaltado de sintaxis y números de línea.
+    #
+    # Esta clase representa una pestaña individual del editor de código.
+    # Incluye un widget Text de Tkinter con resaltado de sintaxis C++,
+    # números de línea sincronizados, barras de desplazamiento horizontal
+    # y vertical, autocompletado de brackets y comillas, indentación
+    # automática y resaltado de la línea actual del cursor.
 
     def __init__(self, parent, ide, **kwargs):
         super().__init__(parent, **kwargs)
@@ -114,10 +111,13 @@ class CodeEditor(tk.Frame):
 
         # Línea actual resaltada
         self.text.tag_configure("current_line", background=colors["current_line"])
+        # Etiqueta para subrayar las líneas con errores de compilación.
+        self.text.tag_configure("compiler_error", foreground=colors["error"], underline=True)
+        self.text.tag_raise("compiler_error")
         self._highlight_current_line()
 
     def apply_theme(self):
-        """Reaplica el tema al editor."""
+        # Reaplica el tema al editor.
         colors = self.ide.theme_manager.get_colors()
         self.configure(bg=colors["bg"])
         self.text.configure(
@@ -128,12 +128,14 @@ class CodeEditor(tk.Frame):
             selectforeground=colors["fg"],
         )
         self.text.tag_configure("current_line", background=colors["current_line"])
+        self.text.tag_configure("compiler_error", foreground=colors["error"], underline=True)
+        self.text.tag_raise("compiler_error")
         self.line_numbers.apply_theme()
         self.highlighter.apply_theme()
         self._highlight_current_line()
 
     def _setup_bindings(self):
-        """Configura los bindings del editor."""
+        # Configura los bindings del editor.
         self.text.bind("<Control-s>", lambda e: self.ide.save_file())
         self.text.bind("<Control-S>", lambda e: self.ide.save_file())
         self.text.bind("<Control-o>", lambda e: self.ide.open_file())
@@ -183,23 +185,25 @@ class CodeEditor(tk.Frame):
         self.text.bind("<Button-5>", self._on_mousewheel)
 
     def _on_modified(self, event=None):
-        """Marca el archivo como modificado y re-resalta la sintaxis."""
+        # Marca el archivo como modificado y re-resalta la sintaxis.
         if self.text.edit_modified():
             self._modified = True
             self.ide.update_title()
             self.ide.update_status("Archivo modificado")
             self.ide.file_explorer.refresh_open_files()
+            # Al editar, los subrayados de errores previos dejan de ser válidos.
+            self.clear_error_underlines()
             self._schedule_highlight()
         self.text.edit_modified(False)
 
     def _on_paste(self, event=None):
-        """Re-resalta la sintaxis después de pegar texto."""
+        # Re-resalta la sintaxis después de pegar texto.
         # El pegado lo realiza el widget por defecto; programamos el
         # resaltado para que se aplique una vez procesado el evento.
         self._schedule_highlight()
 
     def _schedule_highlight(self, event=None):
-        """Programa el resaltado de sintaxis (con un pequeño debounce)."""
+        # Programa el resaltado de sintaxis (con un pequeño debounce).
         if hasattr(self, "_highlight_job") and self._highlight_job is not None:
             try:
                 self.after_cancel(self._highlight_job)
@@ -208,7 +212,7 @@ class CodeEditor(tk.Frame):
         self._highlight_job = self.after(80, self._rehighlight)
 
     def _rehighlight(self):
-        """Aplica el resaltado de sintaxis y actualiza la línea actual."""
+        # Aplica el resaltado de sintaxis y actualiza la línea actual.
         try:
             if not self.winfo_exists():
                 return
@@ -218,7 +222,7 @@ class CodeEditor(tk.Frame):
             pass
 
     def _highlight_current_line(self):
-        """Resalta la línea actual del cursor."""
+        # Resalta la línea actual del cursor.
         try:
             self.text.tag_remove("current_line", "1.0", "end")
             current_line = self.text.index("insert").split(".")[0]
@@ -228,7 +232,7 @@ class CodeEditor(tk.Frame):
             pass
 
     def _on_key_release(self, event=None):
-        """Maneja la liberación de teclas."""
+        # Maneja la liberación de teclas.
         self._highlight_current_line()
         self._schedule_highlight()
         if event and event.keysym in ("Up", "Down", "Left", "Right",
@@ -236,16 +240,16 @@ class CodeEditor(tk.Frame):
             self.ide.update_cursor_position()
 
     def _on_click(self, event=None):
-        """Maneja los clics del mouse."""
+        # Maneja los clics del mouse.
         self._highlight_current_line()
         self.ide.update_cursor_position()
 
     def _on_mousewheel(self, event=None):
-        """Maneja el scroll del mouse."""
+        # Maneja el scroll del mouse.
         self.ide.after(50, self._highlight_current_line)
 
     def _auto_close_bracket(self, event):
-        """Autocompleta brackets."""
+        # Autocompleta brackets.
         pairs = {"(": ")", "[": "]", "{": "}"}
         char = event.char
         if char in pairs:
@@ -265,7 +269,7 @@ class CodeEditor(tk.Frame):
         return None
 
     def _auto_close_quote(self, event):
-        """Autocompleta comillas."""
+        # Autocompleta comillas.
         char = event.char
         try:
             # Si hay selección, rodearla
@@ -293,7 +297,7 @@ class CodeEditor(tk.Frame):
         return "break"
 
     def _auto_indent(self, event=None):
-        """Indentación automática al presionar Enter."""
+        # Indentación automática al presionar Enter.
         current_line = self.text.index("insert").split(".")[0]
         line_start = f"{current_line}.0"
         line_end = f"{current_line}.0 lineend"
@@ -320,16 +324,16 @@ class CodeEditor(tk.Frame):
         return "break"
 
     def _insert_tab(self, event=None):
-        """Inserta 4 espacios al presionar Tab."""
+        # Inserta 4 espacios al presionar Tab.
         self.text.insert("insert", "    ")
         return "break"
 
     def get_content(self):
-        """Obtiene el contenido del editor."""
+        # Obtiene el contenido del editor.
         return self.text.get("1.0", "end-1c")
 
     def set_content(self, content):
-        """Establece el contenido del editor."""
+        # Establece el contenido del editor.
         self.text.delete("1.0", "end")
         self.text.insert("1.0", content)
         self.text.edit_reset()
@@ -338,36 +342,53 @@ class CodeEditor(tk.Frame):
         self.highlighter.highlight()
 
     def get_breakpoints(self):
-        """Devuelve el conjunto de líneas con breakpoints del editor."""
+        # Devuelve el conjunto de líneas con breakpoints del editor.
         return self.line_numbers.breakpoints
 
     def is_modified(self):
-        """Verifica si el archivo ha sido modificado."""
+        # Verifica si el archivo ha sido modificado.
         return self._modified
 
     def set_modified(self, value):
-        """Establece el estado de modificación."""
+        # Establece el estado de modificación.
         self._modified = value
         self.ide.update_title()
 
     def clear(self):
-        """Limpia el editor."""
+        # Limpia el editor.
         self.text.delete("1.0", "end")
         self.file_path = None
         self._modified = False
 
+    def clear_error_underlines(self):
+        # Quita todos los subrayados de errores de compilación de este editor.
+        try:
+            self.text.tag_remove("compiler_error", "1.0", "end")
+        except tk.TclError:
+            pass
+
+    def underline_error_line(self, line_number):
+        # Subraya una línea completa para señalar un error de compilación.
+        if line_number < 1:
+            return
+        try:
+            start = f"{line_number}.0"
+            end = f"{line_number}.0 lineend"
+            self.text.tag_add("compiler_error", start, end)
+        except tk.TclError:
+            pass
+
 
 class FileExplorer(tk.Frame):
-    """Explorador de archivos lateral con archivos abiertos y proyecto.
-
-    Muestra tres secciones principales:
-    - Proyecto: Nombre y botón para cerrar el proyecto activo.
-    - Archivos abiertos: Lista de pestañas abiertas en el editor.
-    - Árbol de archivos: Explorador de directorios del sistema.
-
-    Incluye botones para navegar hacia arriba, actualizar el árbol,
-    y hacer doble clic para abrir archivos en el editor.
-    """
+    # Explorador de archivos lateral con archivos abiertos y proyecto.
+    #
+    # Muestra tres secciones principales:
+    # - Proyecto: Nombre y botón para cerrar el proyecto activo.
+    # - Archivos abiertos: Lista de pestañas abiertas en el editor.
+    # - Árbol de archivos: Explorador de directorios del sistema.
+    #
+    # Incluye botones para navegar hacia arriba, actualizar el árbol,
+    # y hacer doble clic para abrir archivos en el editor.
 
     def __init__(self, parent, ide, **kwargs):
         super().__init__(parent, **kwargs)
@@ -377,7 +398,7 @@ class FileExplorer(tk.Frame):
         self._build_ui()
 
     def _build_ui(self):
-        """Construye la interfaz del explorador."""
+        # Construye la interfaz del explorador.
         colors = self.ide.theme_manager.get_colors()
 
         style = ttk.Style()
@@ -469,7 +490,7 @@ class FileExplorer(tk.Frame):
         self.tree.bind("<Return>", self._on_double_click)
 
     def apply_theme(self):
-        """Reaplica el tema al explorador."""
+        # Reaplica el tema al explorador.
         colors = self.ide.theme_manager.get_colors()
         style = ttk.Style()
         style.configure("Explorer.Treeview",
@@ -484,7 +505,7 @@ class FileExplorer(tk.Frame):
         )
 
     def refresh_open_files(self):
-        """Actualiza la lista de archivos abiertos."""
+        # Actualiza la lista de archivos abiertos.
         self.open_files_list.delete(0, "end")
         for file_id, editor in self.ide.open_files.items():
             if editor.file_path:
@@ -497,7 +518,7 @@ class FileExplorer(tk.Frame):
                 self.open_files_list.insert("end", tab_text)
 
     def _on_open_file_click(self, event=None):
-        """Abre el archivo seleccionado en la lista de archivos abiertos."""
+        # Abre el archivo seleccionado en la lista de archivos abiertos.
         selection = self.open_files_list.curselection()
         if not selection:
             return
@@ -511,7 +532,7 @@ class FileExplorer(tk.Frame):
             self.ide.update_cursor_position()
 
     def _on_open_file_right_click(self, event=None):
-        """Muestra menú contextual para archivos abiertos."""
+        # Muestra menú contextual para archivos abiertos.
         selection = self.open_files_list.curselection()
         if not selection:
             return
@@ -535,7 +556,7 @@ class FileExplorer(tk.Frame):
             menu.grab_release()
 
     def update_project_display(self):
-        """Actualiza la visualización del proyecto."""
+        # Actualiza la visualización del proyecto.
         if self.ide.project_manager.has_project():
             project = self.ide.project_manager.current_project
             self.project_label.config(text=project.name)
@@ -545,7 +566,7 @@ class FileExplorer(tk.Frame):
             self.close_project_btn.config(state="disabled")
 
     def open_directory(self, path=None):
-        """Abre un directorio en el explorador."""
+        # Abre un directorio en el explorador.
         if path is None:
             path = filedialog.askdirectory(parent=self.ide, title="Abrir carpeta")
             if not path:
@@ -556,7 +577,7 @@ class FileExplorer(tk.Frame):
         self.ide.update_status(f"Carpeta: {self._current_dir}")
 
     def refresh(self):
-        """Refresca el árbol de archivos."""
+        # Refresca el árbol de archivos.
         if not self._current_dir:
             return
 
@@ -566,7 +587,7 @@ class FileExplorer(tk.Frame):
         self._populate_directory(self._current_dir, root_item)
 
     def _populate_directory(self, path, parent_item):
-        """Puebla el árbol con el contenido del directorio."""
+        # Puebla el árbol con el contenido del directorio.
         try:
             entries = sorted(os.listdir(path))
             # Separar directorios y archivos
@@ -591,7 +612,7 @@ class FileExplorer(tk.Frame):
             pass
 
     def _on_double_click(self, event=None):
-        """Abre un archivo al hacer doble clic."""
+        # Abre un archivo al hacer doble clic.
         selection = self.tree.selection()
         if not selection:
             return
@@ -604,7 +625,7 @@ class FileExplorer(tk.Frame):
                 self.ide.open_file_path(file_path)
 
     def go_up(self):
-        """Sube un nivel de directorio."""
+        # Sube un nivel de directorio.
         if self._current_dir:
             parent = os.path.dirname(self._current_dir)
             if parent and os.path.isdir(parent):
@@ -612,29 +633,28 @@ class FileExplorer(tk.Frame):
                 self.refresh()
 
     def get_current_dir(self):
-        """Obtiene el directorio actual."""
+        # Obtiene el directorio actual.
         return self._current_dir
 
 
 class MainWindow(tk.Tk):
-    """Ventana principal de MeriCode C++.
-
-    Esta es la clase principal que orquesta toda la aplicación.
-    Configura la ventana, los estilos, los menús, la barra de
-    herramientas, la barra de estado, y todos los paneles:
-
-    - Explorador de archivos (izquierda).
-    - Editor de código con pestañas (centro).
-    - Consola de salida (abajo).
-
-    También maneja la gestión de archivos, proyectos, compilación,
-    ejecución, depuración, temas y atajos de teclado.
-    """
+    # Ventana principal de DevQbo.
+    #
+    # Esta es la clase principal que orquesta toda la aplicación.
+    # Configura la ventana, los estilos, los menús, la barra de
+    # herramientas, la barra de estado, y todos los paneles:
+    #
+    # - Explorador de archivos (izquierda).
+    # - Editor de código con pestañas (centro).
+    # - Consola de salida (abajo).
+    #
+    # También maneja la gestión de archivos, proyectos, compilación,
+    # ejecución, depuración, temas y atajos de teclado.
 
     def __init__(self):
         super().__init__()
 
-        self.title("MeriCode C++")
+        self.title("DevQbo")
         self.geometry("1200x750")
         self.minsize(800, 500)
 
@@ -679,8 +699,56 @@ class MainWindow(tk.Tk):
         # Actualizar título
         self.update_title()
 
+        # Icono y portada de DevQbo
+        self._set_app_icon()
+        self._show_splash()
+
+    def _set_app_icon(self):
+        # Establece el icono de la ventana usando el logo del proyecto.
+        try:
+            logo_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "assets", "logo.png")
+            if os.path.exists(logo_path):
+                self._icon_image = tk.PhotoImage(file=logo_path)
+                self.iconphoto(True, self._icon_image)
+        except Exception:
+            pass
+
+    def _show_splash(self):
+        # Muestra una portada con el logo de DevQbo durante el arranque.
+        try:
+            logo_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "assets", "logo.png")
+            if not os.path.exists(logo_path):
+                return
+            self._splash_image = tk.PhotoImage(file=logo_path)
+            splash = tk.Toplevel(self)
+            splash.overrideredirect(True)
+            colors = self.theme_manager.get_colors()
+            splash.configure(bg=colors["bg"])
+            tk.Label(splash, image=self._splash_image, bg=colors["bg"]).pack()
+            splash.update_idletasks()
+            width = self._splash_image.width()
+            height = self._splash_image.height()
+            x = self.winfo_rootx() + (self.winfo_width() - width) // 2
+            y = self.winfo_rooty() + (self.winfo_height() - height) // 2
+            splash.geometry(f"+{max(0, x)}+{max(0, y)}")
+            splash.lift()
+            self._splash = splash
+            self.after(2200, self._close_splash)
+        except Exception:
+            pass
+
+    def _close_splash(self):
+        try:
+            if hasattr(self, "_splash") and self._splash.winfo_exists():
+                self._splash.destroy()
+            self._splash = None
+        except tk.TclError:
+            pass
+
     def _setup_styles(self):
-        """Configura los estilos de la aplicación."""
+        # Configura los estilos de la aplicación.
         style = ttk.Style()
         style.theme_use("clam")
 
@@ -732,7 +800,7 @@ class MainWindow(tk.Tk):
         self.option_add("*Menu.activeForeground", colors["menu_active_fg"])
 
     def apply_theme(self):
-        """Aplica el tema actual a toda la interfaz."""
+        # Aplica el tema actual a toda la interfaz.
         self._setup_styles()
 
         # Aplicar a editores abiertos
@@ -757,14 +825,14 @@ class MainWindow(tk.Tk):
         self.update_title()
 
     def toggle_theme(self):
-        """Alterna entre tema claro y oscuro."""
+        # Alterna entre tema claro y oscuro.
         self.theme_manager.toggle()
         self.apply_theme()
         theme_name = self.theme_manager.get_colors()["name"]
         self.update_status(f"Tema: {theme_name}")
 
     def _build_ui(self):
-        """Construye la interfaz principal."""
+        # Construye la interfaz principal.
         # Panel principal dividido (horizontal: explorador | editor)
         self.main_paned = ttk.PanedWindow(self, orient="horizontal")
         self.main_paned.pack(fill="both", expand=True)
@@ -801,9 +869,10 @@ class MainWindow(tk.Tk):
 
         self._toggle_console_var = tk.BooleanVar(value=False)
         self._toggle_explorer_var = tk.BooleanVar(value=True)
+        self._underline_errors_var = tk.BooleanVar(value=True)
 
     def _update_panel_buttons(self):
-        """Actualiza los textos de los botones de visibilidad."""
+        # Actualiza los textos de los botones de visibilidad.
         if hasattr(self, "explorer_toggle_btn"):
             self.explorer_toggle_btn.config(
                 text="Ocultar explorador" if self._toggle_explorer_var.get() else "Mostrar explorador")
@@ -821,12 +890,12 @@ class MainWindow(tk.Tk):
                 self.top_console_controls.pack(side="left", padx=2, pady=3)
 
     def _sync_auto_scroll(self):
-        """Sincroniza el auto scroll de la barra superior con la consola."""
+        # Sincroniza el auto scroll de la barra superior con la consola.
         if hasattr(self, "console") and hasattr(self.console, "_auto_scroll_var"):
             self.console._auto_scroll_var.set(self.top_auto_scroll_var.get())
 
     def _toggle_console(self):
-        """Muestra u oculta la consola."""
+        # Muestra u oculta la consola.
         if self._toggle_console_var.get():
             # Verificar si ya está en el PanedWindow antes de añadirlo
             try:
@@ -841,7 +910,7 @@ class MainWindow(tk.Tk):
         self._update_panel_buttons()
 
     def toggle_console(self):
-        """Alterna la visibilidad de la consola."""
+        # Alterna la visibilidad de la consola.
         self._toggle_console_var.set(not self._toggle_console_var.get())
         self._toggle_console()
         # Sincronizar el estado del auto-scroll de la barra superior
@@ -850,22 +919,22 @@ class MainWindow(tk.Tk):
             self.console._auto_scroll_var.set(self.top_auto_scroll_var.get())
 
     def show_console(self):
-        """Muestra la consola automáticamente.
-
-        Se utiliza cuando el programa se ejecuta o cuando la
-        compilación produce errores que el estudiante debe ver.
-        """
+        # Muestra la consola automáticamente.
+        #
+        # Se utiliza cuando el programa se ejecuta o cuando la
+        # compilación produce errores que el estudiante debe ver.
         self._toggle_console_var.set(True)
         self._toggle_console()
 
     def _toggle_explorer(self):
-        """Muestra u oculta el explorador de archivos."""
+        # Muestra u oculta el explorador de archivos.
         if self._toggle_explorer_var.get():
             # Verificar si ya está en el PanedWindow antes de añadirlo
             try:
                 self.main_paned.pane(self.explorer_frame)
             except tk.TclError:
-                self.main_paned.add(self.explorer_frame, weight=1)
+                # Insertarlo en la posición 0 para que vuelva a la izquierda.
+                self.main_paned.insert(0, self.explorer_frame, weight=1)
         else:
             try:
                 self.main_paned.forget(self.explorer_frame)
@@ -874,172 +943,180 @@ class MainWindow(tk.Tk):
         self._update_panel_buttons()
 
     def toggle_explorer(self):
-        """Alterna la visibilidad del explorador de archivos."""
+        # Alterna la visibilidad del explorador de archivos.
         self._toggle_explorer_var.set(not self._toggle_explorer_var.get())
         self._toggle_explorer()
 
+    def _toggle_error_underlines(self):
+        # Al desactivar el subrayado se limpian los marcadores actuales.
+        if not self._underline_errors_var.get():
+            self._clear_error_underlines()
+
     def _create_menus(self):
-        """Crea la barra de menús."""
+        # Crea la barra de menús.
         menubar = tk.Menu(self)
 
         # Menú Archivo
         file_menu = tk.Menu(menubar, tearoff=False)
-        file_menu.add_command(label="Nuevo archivo", accelerator="Ctrl+N",
+        file_menu.add_command(label="📄 Nuevo archivo", accelerator="Ctrl+N",
                               command=lambda: self.new_file(add_to_project=True))
-        file_menu.add_command(label="Abrir archivo...", accelerator="Ctrl+O",
+        file_menu.add_command(label="📂 Abrir archivo...", accelerator="Ctrl+O",
                               command=self.open_file)
-        file_menu.add_command(label="Abrir carpeta...",
+        file_menu.add_command(label="📁 Abrir carpeta...",
                               command=self.file_explorer.open_directory)
         file_menu.add_separator()
-        file_menu.add_command(label="Guardar", accelerator="Ctrl+S",
+        file_menu.add_command(label="💾 Guardar", accelerator="Ctrl+S",
                               command=self.save_file)
-        file_menu.add_command(label="Guardar como...", accelerator="Ctrl+Shift+S",
+        file_menu.add_command(label="📑 Guardar como...", accelerator="Ctrl+Shift+S",
                               command=self.save_file_as)
         file_menu.add_separator()
-        file_menu.add_command(label="Cerrar archivo", command=self.close_current_tab)
-        file_menu.add_command(label="Cerrar todos", command=self.close_all_tabs)
+        file_menu.add_command(label="❌ Cerrar archivo", command=self.close_current_tab)
+        file_menu.add_command(label="🗑️ Cerrar todos", command=self.close_all_tabs)
         file_menu.add_separator()
-        file_menu.add_command(label="Salir", accelerator="Alt+F4",
+        file_menu.add_command(label="🚪 Salir", accelerator="Alt+F4",
                               command=self._on_close)
-        menubar.add_cascade(label="Archivo", menu=file_menu)
+        menubar.add_cascade(label="📂 Archivo", menu=file_menu)
 
         # Menú Proyecto
         project_menu = tk.Menu(menubar, tearoff=False)
-        project_menu.add_command(label="Nuevo proyecto...",
+        project_menu.add_command(label="🗂️ Nuevo proyecto...",
                                  command=self.new_project)
-        project_menu.add_command(label="Abrir proyecto...",
+        project_menu.add_command(label="📂 Abrir proyecto...",
                                  command=self.open_project)
         project_menu.add_separator()
-        project_menu.add_command(label="Guardar proyecto",
+        project_menu.add_command(label="💾 Guardar proyecto",
                                  command=self.save_project)
-        project_menu.add_command(label="Cerrar proyecto",
+        project_menu.add_command(label="❌ Cerrar proyecto",
                                  command=self.close_project)
         project_menu.add_separator()
-        project_menu.add_command(label="Nueva clase (.h y .cpp)...",
+        project_menu.add_command(label="➕ Nueva clase (.h y .cpp)...",
                                  command=self.new_class)
-        menubar.add_cascade(label="Proyecto", menu=project_menu)
+        menubar.add_cascade(label="🗂️ Proyecto", menu=project_menu)
 
         # Menú Editar
         edit_menu = tk.Menu(menubar, tearoff=False)
-        edit_menu.add_command(label="Deshacer", accelerator="Ctrl+Z",
+        edit_menu.add_command(label="↩️ Deshacer", accelerator="Ctrl+Z",
                               command=lambda: self._editor_action("edit_undo"))
-        edit_menu.add_command(label="Rehacer", accelerator="Ctrl+Y",
+        edit_menu.add_command(label="↪️ Rehacer", accelerator="Ctrl+Y",
                               command=lambda: self._editor_action("edit_redo"))
         edit_menu.add_separator()
-        edit_menu.add_command(label="Cortar", accelerator="Ctrl+X",
+        edit_menu.add_command(label="✂️ Cortar", accelerator="Ctrl+X",
                               command=lambda: self._editor_action("edit_cut"))
-        edit_menu.add_command(label="Copiar", accelerator="Ctrl+C",
+        edit_menu.add_command(label="📋 Copiar", accelerator="Ctrl+C",
                               command=lambda: self._editor_action("edit_copy"))
-        edit_menu.add_command(label="Pegar", accelerator="Ctrl+V",
+        edit_menu.add_command(label="📄 Pegar", accelerator="Ctrl+V",
                               command=lambda: self._editor_action("edit_paste"))
         edit_menu.add_separator()
-        edit_menu.add_command(label="Buscar...", accelerator="Ctrl+F",
+        edit_menu.add_command(label="🔍 Buscar...", accelerator="Ctrl+F",
                               command=self.show_search)
-        edit_menu.add_command(label="Reemplazar...", accelerator="Ctrl+H",
+        edit_menu.add_command(label="🔄 Reemplazar...", accelerator="Ctrl+H",
                               command=self.show_replace)
         edit_menu.add_separator()
-        edit_menu.add_command(label="Seleccionar todo", accelerator="Ctrl+A",
+        edit_menu.add_command(label="✅ Seleccionar todo", accelerator="Ctrl+A",
                               command=lambda: self._editor_action("edit_select_all"))
-        edit_menu.add_command(label="Ir a línea...", accelerator="Ctrl+G",
+        edit_menu.add_command(label="🔢 Ir a línea...", accelerator="Ctrl+G",
                               command=self.go_to_line)
-        menubar.add_cascade(label="Editar", menu=edit_menu)
+        menubar.add_cascade(label="✏️ Editar", menu=edit_menu)
 
         # Menú Ver
         view_menu = tk.Menu(menubar, tearoff=False)
-        view_menu.add_checkbutton(label="Explorador de archivos",
+        view_menu.add_checkbutton(label="📁 Explorador de archivos",
                                   variable=self._toggle_explorer_var,
                                   command=self._toggle_explorer)
-        view_menu.add_checkbutton(label="Consola", variable=self._toggle_console_var,
+        view_menu.add_checkbutton(label="🖥️ Consola", variable=self._toggle_console_var,
                                   command=self._toggle_console)
+        view_menu.add_checkbutton(label="➖ Subrayar errores en el editor",
+                                  variable=self._underline_errors_var,
+                                  command=self._toggle_error_underlines)
         view_menu.add_separator()
-        view_menu.add_command(label="Tema claro", command=lambda: self.set_theme("light"))
-        view_menu.add_command(label="Tema oscuro", command=lambda: self.set_theme("dark"))
-        view_menu.add_command(label="Alternar tema", accelerator="Ctrl+T",
+        view_menu.add_command(label="☀️ Tema claro", command=lambda: self.set_theme("light"))
+        view_menu.add_command(label="🌙 Tema oscuro", command=lambda: self.set_theme("dark"))
+        view_menu.add_command(label="🔄 Alternar tema", accelerator="Ctrl+T",
                               command=self.toggle_theme)
         view_menu.add_separator()
-        view_menu.add_command(label="Acercar", accelerator="Ctrl++",
+        view_menu.add_command(label="🔍 Acercar", accelerator="Ctrl++",
                               command=lambda: self.change_font_size(1))
-        view_menu.add_command(label="Alejar", accelerator="Ctrl+-",
+        view_menu.add_command(label="🔍 Alejar", accelerator="Ctrl+-",
                               command=lambda: self.change_font_size(-1))
-        view_menu.add_command(label="Restablecer zoom", accelerator="Ctrl+0",
+        view_menu.add_command(label="🔄 Restablecer zoom", accelerator="Ctrl+0",
                               command=self.reset_font_size)
-        menubar.add_cascade(label="Ver", menu=view_menu)
+        menubar.add_cascade(label="👁️ Ver", menu=view_menu)
 
         # Menú Compilar
         compile_menu = tk.Menu(menubar, tearoff=False)
-        compile_menu.add_command(label="Compilar", accelerator="F7",
+        compile_menu.add_command(label="⚙️ Compilar", accelerator="F7",
                                  command=self.compile_program)
-        compile_menu.add_command(label="Compilar y ejecutar", accelerator="F6",
+        compile_menu.add_command(label="▶️ Compilar y ejecutar", accelerator="F6",
                                  command=self.compile_and_run)
         compile_menu.add_separator()
-        compile_menu.add_command(label="Detener", accelerator="Shift+F5",
+        compile_menu.add_command(label="⏹️ Detener", accelerator="Shift+F5",
                                  command=self.stop_program)
-        menubar.add_cascade(label="Compilar", menu=compile_menu)
+        menubar.add_cascade(label="⚙️ Compilar", menu=compile_menu)
 
         # Menú Ejecutar
         run_menu = tk.Menu(menubar, tearoff=False)
-        run_menu.add_command(label="Ejecutar", accelerator="F5",
+        run_menu.add_command(label="▶️ Ejecutar", accelerator="F5",
                              command=self.run_program)
-        run_menu.add_command(label="Ejecutar con argumentos...",
+        run_menu.add_command(label="⚙️ Ejecutar con argumentos...",
                              command=self.run_with_args)
         run_menu.add_separator()
-        run_menu.add_command(label="Detener", accelerator="Shift+F5",
+        run_menu.add_command(label="⏹️ Detener", accelerator="Shift+F5",
                              command=self.stop_program)
-        menubar.add_cascade(label="Ejecutar", menu=run_menu)
+        menubar.add_cascade(label="▶️ Ejecutar", menu=run_menu)
 
         # Menú Depurar
         debug_menu = tk.Menu(menubar, tearoff=False)
-        debug_menu.add_command(label="Depurar con GDB", accelerator="F6",
+        debug_menu.add_command(label="🐛 Depurar con GDB", accelerator="F6",
                                command=self.debug_program)
         debug_menu.add_separator()
-        debug_menu.add_command(label="Configurar depurador...",
+        debug_menu.add_command(label="⚙️ Configurar depurador...",
                                command=self.show_debug_settings)
-        menubar.add_cascade(label="Depurar", menu=debug_menu)
+        menubar.add_cascade(label="🐛 Depurar", menu=debug_menu)
 
         # Menú UML
         uml_menu = tk.Menu(menubar, tearoff=False)
-        uml_menu.add_command(label="Nuevo diagrama UML",
+        uml_menu.add_command(label="📊 Nuevo diagrama UML",
                              command=self.open_uml_editor)
         uml_menu.add_separator()
-        uml_menu.add_command(label="Guardar XML",
+        uml_menu.add_command(label="💾 Guardar XML",
                              command=self.save_uml_xml)
-        uml_menu.add_command(label="Abrir XML...",
+        uml_menu.add_command(label="📂 Abrir XML...",
                              command=self.open_uml_xml)
         uml_menu.add_separator()
-        uml_menu.add_command(label="Exportar a PDF...",
+        uml_menu.add_command(label="📄 Exportar a PDF...",
                              command=self.export_uml_pdf)
-        uml_menu.add_command(label="Exportar a PNG...",
+        uml_menu.add_command(label="🖼️ Exportar a PNG...",
                              command=self.export_uml_png)
-        menubar.add_cascade(label="UML", menu=uml_menu)
+        menubar.add_cascade(label="📊 UML", menu=uml_menu)
 
         # Menú GitHub
         github_menu = tk.Menu(menubar, tearoff=False)
-        github_menu.add_command(label="Configurar GitHub...",
+        github_menu.add_command(label="⚙️ Configurar GitHub...",
                                 command=self.configure_github)
         github_menu.add_separator()
-        github_menu.add_command(label="Clonar proyecto desde GitHub...",
+        github_menu.add_command(label="📥 Clonar proyecto desde GitHub...",
                                 command=self.github_clone)
-        github_menu.add_command(label="Publicar proyecto en GitHub...",
+        github_menu.add_command(label="🚀 Publicar proyecto en GitHub...",
                                 command=self.github_publish)
-        github_menu.add_command(label="Commit y sincronizar (push)...",
+        github_menu.add_command(label="📤 Commit y sincronizar (push)...",
                                 command=self.github_push)
-        github_menu.add_command(label="Sincronizar (pull)",
+        github_menu.add_command(label="📥 Sincronizar (pull)",
                                 command=self.github_pull)
         github_menu.add_separator()
-        github_menu.add_command(label="Estado del repositorio",
+        github_menu.add_command(label="🔎 Estado del repositorio",
                                 command=self.github_status)
-        menubar.add_cascade(label="GitHub", menu=github_menu)
+        menubar.add_cascade(label="🐙 GitHub", menu=github_menu)
 
         # Menú Ayuda
         help_menu = tk.Menu(menubar, tearoff=False)
-        help_menu.add_command(label="Acerca de", command=self.show_about)
-        help_menu.add_command(label="Atajos de teclado", command=self.show_shortcuts)
-        menubar.add_cascade(label="Ayuda", menu=help_menu)
+        help_menu.add_command(label="ℹ️ Acerca de", command=self.show_about)
+        help_menu.add_command(label="⌨️ Atajos de teclado", command=self.show_shortcuts)
+        menubar.add_cascade(label="❓ Ayuda", menu=help_menu)
 
         self.config(menu=menubar)
 
     def _create_toolbar(self):
-        """Crea la barra de herramientas."""
+        # Crea la barra de herramientas.
         toolbar = ttk.Frame(self, style="Toolbar.TFrame")
         toolbar.pack(side="top", fill="x")
 
@@ -1136,7 +1213,7 @@ class MainWindow(tk.Tk):
         self._update_panel_buttons()
 
     def _create_statusbar(self):
-        """Crea la barra de estado."""
+        # Crea la barra de estado.
         self.status_bar = ttk.Frame(self, style="Statusbar.TFrame")
         self.status_bar.pack(side="bottom", fill="x")
 
@@ -1161,7 +1238,7 @@ class MainWindow(tk.Tk):
         self.build_status_label.pack(side="right", padx=10, pady=3)
 
     def _setup_shortcuts(self):
-        """Configura los atajos de teclado globales."""
+        # Configura los atajos de teclado globales.
         self.bind("<Control-g>", lambda e: self.go_to_line())
         self.bind("<Control-G>", lambda e: self.go_to_line())
         self.bind("<Control-plus>", lambda e: self.change_font_size(1))
@@ -1176,7 +1253,7 @@ class MainWindow(tk.Tk):
     # --- Gestión de temas ---
 
     def set_theme(self, theme_name):
-        """Establece un tema específico."""
+        # Establece un tema específico.
         if self.theme_manager.set_theme(theme_name):
             self.apply_theme()
             theme_name_display = self.theme_manager.get_colors()["name"]
@@ -1185,7 +1262,7 @@ class MainWindow(tk.Tk):
     # --- Gestión de proyectos ---
 
     def new_project(self):
-        """Crea un nuevo proyecto .cmj."""
+        # Crea un nuevo proyecto .cmj.
         import tkinter.simpledialog as simpledialog
 
         name = simpledialog.askstring(
@@ -1227,7 +1304,7 @@ class MainWindow(tk.Tk):
             messagebox.showerror("Error", f"No se pudo crear el proyecto:\n{e}")
 
     def open_project(self):
-        """Abre un proyecto .cmj existente."""
+        # Abre un proyecto .cmj existente.
         file_path = filedialog.askopenfilename(
             parent=self,
             title="Abrir proyecto",
@@ -1257,7 +1334,7 @@ class MainWindow(tk.Tk):
             messagebox.showerror("Error", f"No se pudo abrir el proyecto:\n{e}")
 
     def save_project(self):
-        """Guarda el proyecto actual."""
+        # Guarda el proyecto actual.
         if not self.project_manager.has_project():
             messagebox.showinfo("Sin proyecto", "No hay un proyecto abierto.")
             return
@@ -1270,7 +1347,7 @@ class MainWindow(tk.Tk):
             messagebox.showerror("Error", f"No se pudo guardar el proyecto:\n{e}")
 
     def close_project(self):
-        """Cierra el proyecto actual."""
+        # Cierra el proyecto actual.
         if not self.project_manager.has_project():
             return
 
@@ -1297,7 +1374,7 @@ class MainWindow(tk.Tk):
         self.console.info(f"Proyecto '{project_name}' cerrado.\n")
 
     def new_class(self):
-        """Crea una nueva clase con archivos .h y .cpp."""
+        # Crea una nueva clase con archivos .h y .cpp.
         if not self.project_manager.has_project():
             messagebox.showinfo(
                 "Sin proyecto",
@@ -1343,7 +1420,7 @@ class MainWindow(tk.Tk):
     # --- Sincronización con GitHub ---
 
     def configure_github(self):
-        """Abre el diálogo para configurar el token y el repositorio."""
+        # Abre el diálogo para configurar el token y el repositorio.
 
         def on_saved(cfg):
             alias = f"@{cfg['owner']} / {cfg['repo']}"
@@ -1356,7 +1433,7 @@ class MainWindow(tk.Tk):
         GitHubCredentialsDialog(self, self.github, on_saved=on_saved)
 
     def _github_requires_project(self):
-        """Muestra un aviso y devuelve False si no hay proyecto abierto."""
+        # Muestra un aviso y devuelve False si no hay proyecto abierto.
         if not self.project_manager.has_project():
             messagebox.showinfo(
                 "Sin proyecto",
@@ -1367,10 +1444,9 @@ class MainWindow(tk.Tk):
         return True
 
     def _github_credentials(self):
-        """Devuelve (token, owner, repo) si están configurados; si no, None.
-
-        Abre el diálogo de configuración cuando faltan credenciales.
-        """
+        # Devuelve (token, owner, repo) si están configurados; si no, None.
+        #
+        # Abre el diálogo de configuración cuando faltan credenciales.
         cfg = self.github.load_config()
         token = cfg.get("token", "")
         owner = cfg.get("owner", "")
@@ -1386,13 +1462,12 @@ class MainWindow(tk.Tk):
         return token, owner, repo
 
     def _run_github(self, target, action):
-        """Ejecuta una operación de GitHub en un hilo de fondo.
-
-        Args:
-            target: Función que recibe la ruta del proyecto y devuelve
-                    un resumen en texto.
-            action: Descripción corta de la operación (para la UI).
-        """
+        # Ejecuta una operación de GitHub en un hilo de fondo.
+        #
+        # Args:
+        # target: Función que recibe la ruta del proyecto y devuelve
+        # un resumen en texto.
+        # action: Descripción corta de la operación (para la UI).
         if not self._github_requires_project():
             return
         project_path = self.project_manager.current_project.path
@@ -1410,7 +1485,7 @@ class MainWindow(tk.Tk):
         self.update_status(f"GitHub: {action} en curso…")
 
     def _github_done(self, ok, action, text):
-        """Muestra el resultado de una operación de GitHub."""
+        # Muestra el resultado de una operación de GitHub.
         if ok:
             self.console.success(f"GitHub ({action}):\n{text}\n")
             self.update_status(f"GitHub: {action} completado")
@@ -1425,7 +1500,7 @@ class MainWindow(tk.Tk):
             messagebox.showerror("Error de GitHub", text)
 
     def github_publish(self):
-        """Publica el proyecto actual en GitHub (primer push)."""
+        # Publica el proyecto actual en GitHub (primer push).
         if not self._github_requires_project():
             return
         if not self.github.has_token():
@@ -1473,7 +1548,7 @@ class MainWindow(tk.Tk):
         self._run_github(target, "publicación")
 
     def github_push(self):
-        """Confirma los cambios y los sube al remoto (commit + push)."""
+        # Confirma los cambios y los sube al remoto (commit + push).
         from tkinter import simpledialog
 
         if not self._save_all_open_files():
@@ -1487,10 +1562,10 @@ class MainWindow(tk.Tk):
             simpledialog.askstring(
                 "GitHub",
                 "Mensaje del commit:",
-                initialvalue="Sincronizar cambios desde MeriCode",
+                initialvalue="Sincronizar cambios desde DevQbo",
                 parent=self,
             )
-            or "Sincronizar cambios desde MeriCode"
+            or "Sincronizar cambios desde DevQbo"
         )
 
         def target(path):
@@ -1499,7 +1574,7 @@ class MainWindow(tk.Tk):
         self._run_github(target, "push")
 
     def github_pull(self):
-        """Descarga los cambios remotos al proyecto local (pull)."""
+        # Descarga los cambios remotos al proyecto local (pull).
         creds = self._github_credentials()
         if not creds:
             return
@@ -1511,7 +1586,7 @@ class MainWindow(tk.Tk):
         self._run_github(target, "pull")
 
     def github_status(self):
-        """Muestra el estado del repositorio git del proyecto."""
+        # Muestra el estado del repositorio git del proyecto.
         if not self._github_requires_project():
             return
         project_path = self.project_manager.current_project.path
@@ -1525,7 +1600,7 @@ class MainWindow(tk.Tk):
         messagebox.showinfo("Estado del repositorio", info)
 
     def github_clone(self):
-        """Clona un proyecto de GitHub en el equipo y lo abre en el IDE."""
+        # Clona un proyecto de GitHub en el equipo y lo abre en el IDE.
         cfg = self.github.load_config()
         token = cfg.get("token", "")
         if not token:
@@ -1596,7 +1671,7 @@ class MainWindow(tk.Tk):
         self.update_status(f"GitHub: clonando {owner}/{repo}…")
 
     def _github_clone_done(self, ok, info):
-        """Muestra el resultado del clonado y abre el proyecto si fue bien."""
+        # Muestra el resultado del clonado y abre el proyecto si fue bien.
         if not ok:
             self.console.error(f"GitHub (clonar):\n{info}\n")
             self.update_status("GitHub: error al clonar")
@@ -1613,12 +1688,11 @@ class MainWindow(tk.Tk):
         self._open_cloned_project(clone_dir, repo_name)
 
     def _open_cloned_project(self, clone_dir, repo_name):
-        """Abre el proyecto clonado (usa su .cmj si existe, o crea uno).
-
-        Args:
-            clone_dir: Directorio raíz del proyecto clonado.
-            repo_name: Nombre del repositorio (para el proyecto .cmj).
-        """
+        # Abre el proyecto clonado (usa su .cmj si existe, o crea uno).
+        #
+        # Args:
+        # clone_dir: Directorio raíz del proyecto clonado.
+        # repo_name: Nombre del repositorio (para el proyecto .cmj).
         try:
             cmj = self._find_cmj_file(clone_dir)
             if cmj:
@@ -1651,11 +1725,10 @@ class MainWindow(tk.Tk):
             )
 
     def _find_cmj_file(self, project_dir):
-        """Busca un archivo .cmj dentro del directorio (evitando .git).
-
-        Returns:
-            str: Ruta del primer archivo .cmj encontrado, o None.
-        """
+        # Busca un archivo .cmj dentro del directorio (evitando .git).
+        #
+        # Returns:
+        # str: Ruta del primer archivo .cmj encontrado, o None.
         for root, dirs, files in os.walk(project_dir):
             dirs[:] = [d for d in dirs if d != ".git"]
             for name in files:
@@ -1666,14 +1739,13 @@ class MainWindow(tk.Tk):
     # --- Gestión de archivos ---
 
     def _save_all_open_files(self):
-        """Guarda todos los archivos abiertos que tengan modificaciones.
-
-        Devuelve True si todos los archivos modificados se guardaron
-        (o no había nada que guardar), y False si hay archivos nuevos
-        sin ruta o el usuario canceló el guardado.
-
-        Requiere que haya un editor actual activo (self.current_editor).
-        """
+        # Guarda todos los archivos abiertos que tengan modificaciones.
+        #
+        # Devuelve True si todos los archivos modificados se guardaron
+        # (o no había nada que guardar), y False si hay archivos nuevos
+        # sin ruta o el usuario canceló el guardado.
+        #
+        # Requiere que haya un editor actual activo (self.current_editor).
         modified = [
             ed for ed in self.open_files.values()
             if ed.is_modified()
@@ -1728,26 +1800,25 @@ class MainWindow(tk.Tk):
         return True
 
     def new_file(self, content=None, add_to_project=False):
-        """Crea un nuevo archivo.
-
-        Si no se especifica contenido y se crea un archivo .cpp,
-        se genera automáticamente un programa "Hola mundo" funcional
-        (a menos que forme parte de un proyecto, donde se usa el
-        template del proyecto).
-
-        Cuando add_to_project es True y hay un proyecto abierto,
-        el archivo se crea dentro del directorio del proyecto y se
-        registra en la lista de archivos del proyecto (.cmj).
-
-        Args:
-            content: Contenido inicial opcional para el editor.
-            add_to_project: Si True, al crear el archivo con un
-                proyecto abierto se agrega automáticamente al proyecto.
-
-        Returns:
-            CodeEditor: El editor creado (o None si el usuario canceló
-            la creación en el proyecto).
-        """
+        # Crea un nuevo archivo.
+        #
+        # Si no se especifica contenido y se crea un archivo .cpp,
+        # se genera automáticamente un programa "Hola mundo" funcional
+        # (a menos que forme parte de un proyecto, donde se usa el
+        # template del proyecto).
+        #
+        # Cuando add_to_project es True y hay un proyecto abierto,
+        # el archivo se crea dentro del directorio del proyecto y se
+        # registra en la lista de archivos del proyecto (.cmj).
+        #
+        # Args:
+        # content: Contenido inicial opcional para el editor.
+        # add_to_project: Si True, al crear el archivo con un
+        # proyecto abierto se agrega automáticamente al proyecto.
+        #
+        # Returns:
+        # CodeEditor: El editor creado (o None si el usuario canceló
+        # la creación en el proyecto).
         # Al crear un archivo nuevo con un proyecto abierto, agregarlo
         # directamente al proyecto (crearlo en su directorio).
         if add_to_project and self.project_manager.has_project():
@@ -1790,16 +1861,15 @@ class MainWindow(tk.Tk):
         return editor
 
     def _new_project_file(self):
-        """Crea un archivo nuevo dentro del directorio del proyecto activo.
-
-        Pide el nombre del archivo (con un nombre sugerido único) y lo
-        crea en el directorio del proyecto, registrándolo en la lista de
-        archivos del proyecto (.cmj).
-
-        Returns:
-            CodeEditor: El editor con el archivo creado, o None si el
-            usuario cancela o el nombre no es válido.
-        """
+        # Crea un archivo nuevo dentro del directorio del proyecto activo.
+        #
+        # Pide el nombre del archivo (con un nombre sugerido único) y lo
+        # crea en el directorio del proyecto, registrándolo en la lista de
+        # archivos del proyecto (.cmj).
+        #
+        # Returns:
+        # CodeEditor: El editor con el archivo creado, o None si el
+        # usuario cancela o el nombre no es válido.
         project = self.project_manager.current_project
         import tkinter.simpledialog as simpledialog
 
@@ -1868,15 +1938,14 @@ class MainWindow(tk.Tk):
         return editor
 
     def _suggest_new_filename(self, project_dir):
-        """Devuelve un nombre de archivo .cpp único en el directorio.
-
-        Args:
-            project_dir: Directorio del proyecto.
-
-        Returns:
-            str: Nombre como 'nuevo_archivo.cpp' (o _1, _2... si ya
-            existe).
-        """
+        # Devuelve un nombre de archivo .cpp único en el directorio.
+        #
+        # Args:
+        # project_dir: Directorio del proyecto.
+        #
+        # Returns:
+        # str: Nombre como 'nuevo_archivo.cpp' (o _1, _2... si ya
+        # existe).
         base = "nuevo_archivo"
         name = f"{base}.cpp"
         counter = 1
@@ -1886,19 +1955,18 @@ class MainWindow(tk.Tk):
         return name
 
     def _register_file_in_project(self, file_path, notify=False):
-        """Registra un archivo en el proyecto activo si aún no está.
-
-        Si el archivo pertenece al directorio del proyecto abierto y no
-        figura en su lista de archivos, lo agrega (reescanea el directorio
-        y guarda el .cmj).
-
-        Args:
-            file_path: Ruta del archivo creado o guardado.
-            notify: True para informar en consola y barra de estado.
-
-        Returns:
-            bool: True si el archivo fue agregado al proyecto.
-        """
+        # Registra un archivo en el proyecto activo si aún no está.
+        #
+        # Si el archivo pertenece al directorio del proyecto abierto y no
+        # figura en su lista de archivos, lo agrega (reescanea el directorio
+        # y guarda el .cmj).
+        #
+        # Args:
+        # file_path: Ruta del archivo creado o guardado.
+        # notify: True para informar en consola y barra de estado.
+        #
+        # Returns:
+        # bool: True si el archivo fue agregado al proyecto.
         if not self.project_manager.has_project():
             return False
 
@@ -1931,7 +1999,7 @@ class MainWindow(tk.Tk):
         return True
 
     def open_file(self):
-        """Abre un archivo mediante diálogo."""
+        # Abre un archivo mediante diálogo.
         file_path = filedialog.askopenfilename(
             parent=self,
             title="Abrir archivo",
@@ -1952,7 +2020,7 @@ class MainWindow(tk.Tk):
                 self.open_file_path(file_path)
 
     def open_file_path(self, file_path):
-        """Abre un archivo existente."""
+        # Abre un archivo existente.
         # Verificar si ya está abierto
         for file_id, editor in self.open_files.items():
             if editor.file_path and os.path.abspath(editor.file_path) == os.path.abspath(file_path):
@@ -1983,7 +2051,7 @@ class MainWindow(tk.Tk):
         self.file_explorer.refresh_open_files()
 
     def save_file(self):
-        """Guarda el archivo actual."""
+        # Guarda el archivo actual.
         if not self.current_editor:
             return
 
@@ -1998,7 +2066,7 @@ class MainWindow(tk.Tk):
             self.save_file_as()
 
     def save_editor(self, editor):
-        """Guarda un editor específico."""
+        # Guarda un editor específico.
         if not editor:
             return
 
@@ -2008,7 +2076,7 @@ class MainWindow(tk.Tk):
         self.current_editor = old_editor
 
     def save_file_as(self):
-        """Guarda el archivo actual con un nombre nuevo."""
+        # Guarda el archivo actual con un nombre nuevo.
         if not self.current_editor:
             return
 
@@ -2035,7 +2103,7 @@ class MainWindow(tk.Tk):
             self.file_explorer.refresh_open_files()
 
     def _save_to_path(self, file_path):
-        """Guarda el contenido del editor en una ruta."""
+        # Guarda el contenido del editor en una ruta.
         try:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(self.current_editor.get_content())
@@ -2050,19 +2118,18 @@ class MainWindow(tk.Tk):
             messagebox.showerror("Error", f"No se pudo guardar el archivo:\n{e}")
 
     def close_editor(self, editor, create_new_if_empty=True):
-        """Cierra un editor específico.
-
-        Args:
-            editor: El editor (pestaña) a cerrar.
-            create_new_if_empty: Si es True (predeterminado), crea un
-                archivo nuevo automáticamente cuando se cierra la última
-                pestaña. Si es False (usado por "Cerrar todos"), NO crea
-                ninguna pestaña nueva, para poder cerrar todas de una vez.
-
-        Returns:
-            bool: True si el editor se cerró correctamente,
-                  False si el usuario canceló el cierre o el editor no existe.
-        """
+        # Cierra un editor específico.
+        #
+        # Args:
+        # editor: El editor (pestaña) a cerrar.
+        # create_new_if_empty: Si es True (predeterminado), crea un
+        # archivo nuevo automáticamente cuando se cierra la última
+        # pestaña. Si es False (usado por "Cerrar todos"), NO crea
+        # ninguna pestaña nueva, para poder cerrar todas de una vez.
+        #
+        # Returns:
+        # bool: True si el editor se cerró correctamente,
+        # False si el usuario canceló el cierre o el editor no existe.
         if not editor:
             return False
 
@@ -2134,21 +2201,20 @@ class MainWindow(tk.Tk):
         return True
 
     def close_current_tab(self):
-        """Cierra la pestaña actual."""
+        # Cierra la pestaña actual.
         if not self.current_editor:
             return
         self.close_editor(self.current_editor)
 
     def close_all_tabs(self):
-        """Cierra todas las pestañas que el IDE tiene abiertas.
-
-        Se toma una copia de los archivos abiertos ANTES de empezar
-        para garantizar que solo se cierren los que están abiertos en
-        este momento y no se creen pestañas nuevas en el proceso.
-
-        Si el usuario cancela el cierre de alguno con cambios sin
-        guardar, se detiene la operación sin cerrar el resto.
-        """
+        # Cierra todas las pestañas que el IDE tiene abiertas.
+        #
+        # Se toma una copia de los archivos abiertos ANTES de empezar
+        # para garantizar que solo se cierren los que están abiertos en
+        # este momento y no se creen pestañas nuevas en el proceso.
+        #
+        # Si el usuario cancela el cierre de alguno con cambios sin
+        # guardar, se detiene la operación sin cerrar el resto.
         # Copia de seguridad de los abiertos actualmente
         editors = list(self.open_files.values())
 
@@ -2163,7 +2229,7 @@ class MainWindow(tk.Tk):
             self.new_file()
 
     def _on_tab_changed(self, event=None):
-        """Actualiza el editor actual al cambiar de pestaña."""
+        # Actualiza el editor actual al cambiar de pestaña.
         try:
             current_tab = self.notebook.select()
             # Verificar si es el editor UML
@@ -2188,7 +2254,7 @@ class MainWindow(tk.Tk):
             pass
 
     def _editor_action(self, action):
-        """Ejecuta una acción de edición en el editor actual."""
+        # Ejecuta una acción de edición en el editor actual.
         if not self.current_editor:
             return
         # Si es el editor UML, no ejecutar acciones de texto
@@ -2212,13 +2278,13 @@ class MainWindow(tk.Tk):
     # --- Compilación / Ejecución / Depuración ---
 
     def _get_project_root(self):
-        """Devuelve el directorio raíz del proyecto abierto, o None."""
+        # Devuelve el directorio raíz del proyecto abierto, o None.
         if self.project_manager.has_project():
             return self.project_manager.current_project.path
         return None
 
     def _all_project_sources(self, project_dir):
-        """Reúne todos los archivos fuente (.cpp/.cc/.cxx) del proyecto."""
+        # Reúne todos los archivos fuente (.cpp/.cc/.cxx) del proyecto.
         sources = []
         for root, dirs, files in os.walk(project_dir):
             # Omitir directorios ocultos (p. ej. .git, .venv)
@@ -2230,7 +2296,7 @@ class MainWindow(tk.Tk):
         return sources
 
     def _find_main_source(self):
-        """Localiza el archivo fuente que contiene la función main()."""
+        # Localiza el archivo fuente que contiene la función main().
         project_dir = self._get_project_root()
         if not project_dir:
             return None
@@ -2258,11 +2324,10 @@ class MainWindow(tk.Tk):
         return None
 
     def _get_entry_source(self):
-        """Devuelve el archivo fuente principal (main) a compilar/ejecutar.
-
-        Con un proyecto abierto, localiza el main sin importar qué pestaña
-        esté seleccionada. Sin proyecto, usa el archivo abierto actual.
-        """
+        # Devuelve el archivo fuente principal (main) a compilar/ejecutar.
+        #
+        # Con un proyecto abierto, localiza el main sin importar qué pestaña
+        # esté seleccionada. Sin proyecto, usa el archivo abierto actual.
         main = self._find_main_source()
         if main:
             return main
@@ -2271,19 +2336,18 @@ class MainWindow(tk.Tk):
         return None
 
     def _collect_source_files(self, source_file):
-        """Reúne los archivos .cpp a compilar/enlazar.
-
-        Con un proyecto abierto, devuelve TODOS los archivos fuente del
-        proyecto, poniendo en primer lugar el archivo principal (main).
-        Sin proyecto, devuelve el archivo actual y los .cpp de su mismo
-        directorio.
-
-        Args:
-            source_file: Ruta del archivo fuente principal.
-
-        Returns:
-            list[str]: Lista de rutas absolutas de archivos .cpp.
-        """
+        # Reúne los archivos .cpp a compilar/enlazar.
+        #
+        # Con un proyecto abierto, devuelve TODOS los archivos fuente del
+        # proyecto, poniendo en primer lugar el archivo principal (main).
+        # Sin proyecto, devuelve el archivo actual y los .cpp de su mismo
+        # directorio.
+        #
+        # Args:
+        # source_file: Ruta del archivo fuente principal.
+        #
+        # Returns:
+        # list[str]: Lista de rutas absolutas de archivos .cpp.
         source_file = os.path.abspath(source_file)
 
         project_dir = self._get_project_root()
@@ -2313,17 +2377,16 @@ class MainWindow(tk.Tk):
         return sources
 
     def _get_include_dirs(self, source_file):
-        """Devuelve los directorios donde buscar los archivos de cabecera.
-
-        Incluye la carpeta headers/ del proyecto (por defecto), la raíz
-        del proyecto y el directorio del archivo fuente actual.
-
-        Args:
-            source_file: Ruta del archivo fuente principal.
-
-        Returns:
-            list[str]: Lista de rutas de directorios existentes.
-        """
+        # Devuelve los directorios donde buscar los archivos de cabecera.
+        #
+        # Incluye la carpeta headers/ del proyecto (por defecto), la raíz
+        # del proyecto y el directorio del archivo fuente actual.
+        #
+        # Args:
+        # source_file: Ruta del archivo fuente principal.
+        #
+        # Returns:
+        # list[str]: Lista de rutas de directorios existentes.
         include_dirs = []
         project_dir = self._get_project_root()
         if project_dir:
@@ -2344,7 +2407,7 @@ class MainWindow(tk.Tk):
         return result
 
     def compile_program(self):
-        """Compila el programa actual."""
+        # Compila el programa actual.
         if not self.current_editor:
             return
 
@@ -2361,6 +2424,7 @@ class MainWindow(tk.Tk):
             return
 
         self.console.clear_errors()
+        self._clear_error_underlines()
         self.console.show_output_tab()
         self.console.output(f"=== Compilando {os.path.basename(source_file)} ===\n")
         self.build_status_label.config(text="Compilando...")
@@ -2392,7 +2456,7 @@ class MainWindow(tk.Tk):
         )
 
     def run_program(self, args=None):
-        """Ejecuta el programa actual."""
+        # Ejecuta el programa actual.
         if not self.current_editor:
             return
 
@@ -2441,7 +2505,7 @@ class MainWindow(tk.Tk):
                 self.run_program(args)
 
     def compile_and_run(self):
-        """Compila y ejecuta el programa."""
+        # Compila y ejecuta el programa.
         if not self.current_editor:
             return
 
@@ -2459,6 +2523,7 @@ class MainWindow(tk.Tk):
 
         self.console.clear_output()
         self.console.clear_errors()
+        self._clear_error_underlines()
         self.console.show_output_tab()
         self.console.output(f"=== Compilando y ejecutando ===\n")
         self.build_status_label.config(text="Compilando...")
@@ -2479,7 +2544,7 @@ class MainWindow(tk.Tk):
         )
 
     def _after_compile_for_run(self, code):
-        """Continuación de compilar y ejecutar."""
+        # Continuación de compilar y ejecutar.
         self.build_status_label.config(text="")
         if code == 0:
             source_file = self._get_entry_source()
@@ -2503,7 +2568,7 @@ class MainWindow(tk.Tk):
             self.console.show_error_tab()
 
     def debug_program(self):
-        """Depura el programa actual con GDB."""
+        # Depura el programa actual con GDB.
         if not self.current_editor:
             return
 
@@ -2539,6 +2604,7 @@ class MainWindow(tk.Tk):
                 return
 
             self.console.clear_debug()
+            self._clear_error_underlines()
             self.console.show_debug_tab()
             self.console.debug("Compilando con símbolos de depuración (-g)...\n")
             self.compiler.compile_source(
@@ -2554,7 +2620,7 @@ class MainWindow(tk.Tk):
             self._start_debug(executable, breakpoints)
 
     def _start_debug_after_compile(self, code, executable, breakpoints=None):
-        """Inicia depuración después de compilar."""
+        # Inicia depuración después de compilar.
         if code == 0:
             self._start_debug(executable, breakpoints)
         else:
@@ -2564,7 +2630,7 @@ class MainWindow(tk.Tk):
             self.update_status("Error de compilación para depuración")
 
     def _start_debug(self, executable, breakpoints=None):
-        """Inicia la sesión de depuración."""
+        # Inicia la sesión de depuración.
         # Mostrar la consola al depurar
         self.show_console()
         self.console.clear_debug()
@@ -2591,7 +2657,7 @@ class MainWindow(tk.Tk):
         )
 
     def run_with_args(self):
-        """Ejecuta el programa con argumentos."""
+        # Ejecuta el programa con argumentos.
         import tkinter.simpledialog as simpledialog
         args_str = simpledialog.askstring(
             "Argumentos",
@@ -2603,7 +2669,7 @@ class MainWindow(tk.Tk):
             self.run_program(args)
 
     def stop_program(self):
-        """Detiene el proceso en ejecución."""
+        # Detiene el proceso en ejecución.
         if self.compiler.is_busy():
             self.compiler.stop()
             self.console.enable_input(False)
@@ -2611,7 +2677,7 @@ class MainWindow(tk.Tk):
             self.update_status("Proceso detenido")
 
     def show_debug_settings(self):
-        """Muestra la configuración del depurador."""
+        # Muestra la configuración del depurador.
         info = self.compiler.get_compiler_info()
         gdb_available = shutil.which("gdb") is not None
 
@@ -2626,38 +2692,76 @@ class MainWindow(tk.Tk):
         )
 
     def _send_program_input(self, text):
-        """Envía el texto escrito en la consola al programa en ejecución.
-
-        Args:
-            text: Línea escrita por el usuario (con salto de línea).
-        """
+        # Envía el texto escrito en la consola al programa en ejecución.
+        #
+        # Args:
+        # text: Línea escrita por el usuario (con salto de línea).
         if self.compiler and self.compiler.is_running:
             self.compiler.send_input(text)
 
     def _console_output(self, line, tag):
-        """Escribe la salida de un proceso en la pestaña de consola adecuada."""
+        # Escribe la salida de un proceso en la pestaña de consola adecuada.
         if tag == "error":
             self.console.error(line)
+            self._queue_error_underline(line)
         elif tag == "debug":
             self.console.debug(line)
         else:
             self.console.output(line)
 
     def _debug_output(self, line, tag):
-        """Escribe la salida de depuración; los errores van a la pestaña de errores."""
+        # Escribe la salida de depuración; los errores van a la pestaña de errores.
         if tag == "error":
             self.console.error(line)
+            self._queue_error_underline(line)
         else:
             self.console.debug(line)
 
+    def _queue_error_underline(self, line):
+        # Analiza una línea de error del compilador y programa el subrayado
+        # en el editor correspondiente desde el hilo principal de Tk.
+        if not self._underline_errors_var.get():
+            return
+        match = re.match(r"^(.+):(\d+):(\d+):\s*(?:fatal error|error|note|warning):", line)
+        if not match:
+            return
+        path = match.group(1)
+        line_number = int(match.group(2))
+        self.after(0, lambda: self._apply_error_underline(path, line_number))
+
+    def _apply_error_underline(self, path, line_number):
+        # Busca el editor abierto que coincida con la ruta del error y
+        # subraya la línea indicada para facilitar su localización.
+        target = os.path.abspath(path)
+        matched = None
+        for editor in self.open_files.values():
+            if not editor.file_path:
+                continue
+            if os.path.abspath(editor.file_path) == target:
+                matched = editor
+                break
+        if matched is None:
+            base = os.path.basename(path)
+            for editor in self.open_files.values():
+                if editor.file_path and os.path.basename(editor.file_path) == base:
+                    matched = editor
+                    break
+        if matched is not None:
+            matched.underline_error_line(line_number)
+
+    def _clear_error_underlines(self):
+        # Quita los subrayados de error de todos los editores abiertos.
+        for editor in self.open_files.values():
+            editor.clear_error_underlines()
+
     def _on_program_done(self, code):
-        """Maneja la finalización del programa."""
+        # Maneja la finalización del programa.
         self.console.enable_input(False)
         self.build_status_label.config(text="")
         self.update_status(f"Proceso terminado con código {code}")
 
     def _ensure_saved(self):
-        """Asegura que el archivo actual esté guardado."""
+        # Asegura que el archivo actual esté guardado.
         if not self.current_editor:
             return False
         # Si es el editor UML, no necesita guardar
@@ -2681,7 +2785,7 @@ class MainWindow(tk.Tk):
     # --- Utilidades de editor ---
 
     def show_search(self):
-        """Muestra el diálogo de búsqueda."""
+        # Muestra el diálogo de búsqueda.
         if not self.current_editor:
             return
         # Si es el editor UML, no mostrar búsqueda
@@ -2690,7 +2794,7 @@ class MainWindow(tk.Tk):
         self.search_dialog = SearchDialog(self, self.current_editor.text)
 
     def show_replace(self):
-        """Muestra el diálogo de búsqueda y reemplazo."""
+        # Muestra el diálogo de búsqueda y reemplazo.
         if not self.current_editor:
             return
         # Si es el editor UML, no mostrar búsqueda
@@ -2699,7 +2803,7 @@ class MainWindow(tk.Tk):
         self.search_dialog = SearchDialog(self, self.current_editor.text)
 
     def go_to_line(self):
-        """Va a una línea específica."""
+        # Va a una línea específica.
         import tkinter.simpledialog as simpledialog
         if not self.current_editor:
             return
@@ -2719,7 +2823,7 @@ class MainWindow(tk.Tk):
             self.update_cursor_position()
 
     def change_font_size(self, delta):
-        """Cambia el tamaño de la fuente del editor."""
+        # Cambia el tamaño de la fuente del editor.
         if not self.current_editor:
             return
         # Si es el editor UML, no cambiar fuente
@@ -2731,7 +2835,7 @@ class MainWindow(tk.Tk):
         self.current_editor.line_numbers._font.configure(size=new_size)
 
     def reset_font_size(self):
-        """Restablece el tamaño de fuente."""
+        # Restablece el tamaño de fuente.
         if not self.current_editor:
             return
         # Si es el editor UML, no cambiar fuente
@@ -2741,15 +2845,15 @@ class MainWindow(tk.Tk):
         self.current_editor.line_numbers._font.configure(size=11)
 
     def hide_panel(self):
-        """Oculta paneles al presionar Escape."""
+        # Oculta paneles al presionar Escape.
         # Cerrar diálogo de búsqueda si está abierto
         if self.search_dialog and self.search_dialog.winfo_exists():
             self.search_dialog.destroy()
             self.search_dialog = None
 
     def update_title(self):
-        """Actualiza el título de la ventana."""
-        title = "MeriCode C++"
+        # Actualiza el título de la ventana.
+        title = "DevQbo"
         if self.project_manager.has_project():
             title = f"{self.project_manager.current_project.name} - {title}"
         if self.current_editor:
@@ -2765,13 +2869,13 @@ class MainWindow(tk.Tk):
         self.title(title)
 
     def update_status(self, message):
-        """Actualiza el mensaje de estado."""
+        # Actualiza el mensaje de estado.
         self.status_label.config(text=message)
         # Auto limpiar después de 5 segundos
         self.after(5000, lambda: self.status_label.config(text="Listo"))
 
     def update_cursor_position(self):
-        """Actualiza la posición del cursor en la barra de estado."""
+        # Actualiza la posición del cursor en la barra de estado.
         if not self.current_editor:
             return
         # Si es el editor UML, no actualizar posición de cursor
@@ -2785,7 +2889,7 @@ class MainWindow(tk.Tk):
             pass
 
     def _check_compiler_status(self):
-        """Verifica y muestra el estado del compilador."""
+        # Verifica y muestra el estado del compilador.
         info = self.compiler.get_compiler_info()
         if info["available"]:
             self.compiler_label.config(
@@ -2802,7 +2906,7 @@ class MainWindow(tk.Tk):
     # --- Editor UML ---
 
     def open_uml_editor(self):
-        """Abre el editor de diagramas UML."""
+        # Abre el editor de diagramas UML.
         # Verificar si ya hay un editor UML abierto
         if hasattr(self, "uml_editor") and self.uml_editor is not None:
             try:
@@ -2821,7 +2925,7 @@ class MainWindow(tk.Tk):
         self.update_status("Editor UML abierto")
 
     def save_uml_xml(self):
-        """Guarda el diagrama UML actual en XML."""
+        # Guarda el diagrama UML actual en XML.
         if not hasattr(self, "uml_editor") or self.uml_editor is None:
             messagebox.showinfo("UML", "Primero abra el editor UML.")
             return
@@ -2832,7 +2936,7 @@ class MainWindow(tk.Tk):
             messagebox.showinfo("UML", "Primero abra el editor UML.")
 
     def open_uml_xml(self):
-        """Abre un diagrama UML desde XML."""
+        # Abre un diagrama UML desde XML.
         if not hasattr(self, "uml_editor") or self.uml_editor is None:
             self.open_uml_editor()
         try:
@@ -2843,7 +2947,7 @@ class MainWindow(tk.Tk):
             self.uml_editor.open_xml()
 
     def export_uml_pdf(self):
-        """Exporta el diagrama UML a PDF."""
+        # Exporta el diagrama UML a PDF.
         if not hasattr(self, "uml_editor") or self.uml_editor is None:
             messagebox.showinfo("UML", "Primero abra el editor UML.")
             return
@@ -2854,7 +2958,7 @@ class MainWindow(tk.Tk):
             messagebox.showinfo("UML", "Primero abra el editor UML.")
 
     def export_uml_png(self):
-        """Exporta el diagrama UML a PNG."""
+        # Exporta el diagrama UML a PNG.
         if not hasattr(self, "uml_editor") or self.uml_editor is None:
             messagebox.showinfo("UML", "Primero abra el editor UML.")
             return
@@ -2865,14 +2969,16 @@ class MainWindow(tk.Tk):
             messagebox.showinfo("UML", "Primero abra el editor UML.")
 
     def show_about(self):
-        """Muestra información sobre el IDE."""
+        # Muestra información sobre el IDE.
         messagebox.showinfo(
-            "Acerca de MeriCode C++",
-            "MeriCode C++ v2.0\n\n"
+            "Acerca de DevQbo",
+            "DevQbo v2.0\n\n"
             "Un IDE completo para programar en C++\n"
             "desarrollado en Python con Tkinter.\n\n"
+            "En honor al gato del Laboratorio de Innovación,\n"
+            "Emprendimiento y Desarrollo Tecnológico de la UNA.\n\n"
             "Autor: MSc. Cristopher Montero Jiménez\n"
-            "© 2026 MERIMAD. Todos los derechos reservados.\n\n"
+            "© 2026 DevQbo. Todos los derechos reservados.\n\n"
             "Características:\n"
             "• Editor con resaltado de sintaxis\n"
             "• Números de línea y autocompletado\n"
@@ -2890,7 +2996,7 @@ class MainWindow(tk.Tk):
         )
 
     def show_shortcuts(self):
-        """Muestra los atajos de teclado."""
+        # Muestra los atajos de teclado.
         messagebox.showinfo(
             "Atajos de teclado",
             "Atajos de teclado:\n\n"
@@ -2913,7 +3019,7 @@ class MainWindow(tk.Tk):
         )
 
     def _on_close(self):
-        """Maneja el cierre de la ventana."""
+        # Maneja el cierre de la ventana.
         # Detener procesos en ejecución
         if self.compiler.is_busy():
             self.compiler.stop()
@@ -2936,7 +3042,7 @@ class MainWindow(tk.Tk):
 
 
 def run():
-    """Inicia la aplicación."""
+    # Inicia la aplicación.
     app = MainWindow()
     app.mainloop()
 

@@ -5,7 +5,7 @@ __pycache__/
 # PyInstaller
 build/
 dist/
-MeriCode.spec
+DevQbo.spec
 
 # Entornos virtuales
 .venv/

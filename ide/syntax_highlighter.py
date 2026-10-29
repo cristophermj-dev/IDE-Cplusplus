@@ -1,10 +1,8 @@
-"""
-Resaltador de sintaxis para C++ usando Tkinter Text widget.
-
-Este módulo aplica colores a las palabras clave, tipos, cadenas,
-comentarios, números, directivas de preprocesador, funciones,
-operadores y corchetes del código C++ en el editor.
-"""
+# Resaltador de sintaxis para C++ usando Tkinter Text widget.
+#
+# Este módulo aplica colores a las palabras clave, tipos, cadenas,
+# comentarios, números, directivas de preprocesador, funciones,
+# operadores y corchetes del código C++ en el editor.
 
 import tkinter as tk
 import re
@@ -13,12 +11,11 @@ from .theme import ThemeManager
 
 
 class SyntaxHighlighter:
-    """Aplica resaltado de sintaxis C++ a un widget Text de Tkinter.
-
-    El resaltador utiliza expresiones regulares para identificar
-    los diferentes elementos del lenguaje C++ y les aplica etiquetas
-    (tags) de color configuradas según el tema activo.
-    """
+    # Aplica resaltado de sintaxis C++ a un widget Text de Tkinter.
+    #
+    # El resaltador utiliza expresiones regulares para identificar
+    # los diferentes elementos del lenguaje C++ y les aplica etiquetas
+    # (tags) de color configuradas según el tema activo.
 
     # Palabras clave de C++ (incluye C++11, C++14, C++17 y C++20)
     KEYWORDS = {
@@ -91,25 +88,23 @@ class SyntaxHighlighter:
     }
 
     def __init__(self, text_widget, theme_manager=None):
-        """
-        Inicializa el resaltador de sintaxis.
-
-        Args:
-            text_widget: Widget Text de Tkinter al que aplicar el resaltado.
-            theme_manager: Gestor de temas (opcional).
-        """
+        # Inicializa el resaltador de sintaxis.
+        #
+        # Args:
+        # text_widget: Widget Text de Tkinter al que aplicar el resaltado.
+        # theme_manager: Gestor de temas (opcional).
         self.text = text_widget
         self.theme_manager = theme_manager or ThemeManager()
         self._setup_tags()
         self._setup_bindings()
 
     def apply_theme(self):
-        """Reaplica los colores del tema actual al resaltado."""
+        # Reaplica los colores del tema actual al resaltado.
         self._setup_tags()
         self.highlight()
 
     def _setup_tags(self):
-        """Configura las etiquetas (tags) de color para el resaltado."""
+        # Configura las etiquetas (tags) de color para el resaltado.
         c = self.theme_manager.get_colors()
         self.text.tag_configure("keyword", foreground=c["keyword"])
         self.text.tag_configure("type", foreground=c["type"])
@@ -151,22 +146,22 @@ class SyntaxHighlighter:
         self.text.tag_raise("user_class")
 
     def _setup_bindings(self):
-        """Configura los eventos para el resaltado en tiempo real."""
+        # Configura los eventos para el resaltado en tiempo real.
         self.text.bind("<KeyRelease>", self._on_key_release)
         self.text.bind("<<Modified>>", self._on_modified)
 
     def _on_key_release(self, event=None):
-        """Maneja el evento de liberación de tecla para re-resaltar."""
+        # Maneja el evento de liberación de tecla para re-resaltar.
         self.highlight()
 
     def _on_modified(self, event=None):
-        """Maneja el evento de modificación del texto para re-resaltar."""
+        # Maneja el evento de modificación del texto para re-resaltar.
         if self.text.edit_modified():
             self.highlight()
             self.text.edit_modified(False)
 
     def highlight(self):
-        """Aplica el resaltado de sintaxis a todo el documento."""
+        # Aplica el resaltado de sintaxis a todo el documento.
         # Limpiar todas las etiquetas existentes
         self.text.tag_remove("keyword", "1.0", "end")
         self.text.tag_remove("type", "1.0", "end")
@@ -201,7 +196,7 @@ class SyntaxHighlighter:
         self._highlight_brackets(content)
 
     def _highlight_comments(self, content):
-        """Resalta comentarios de línea (//) y de bloque (/* ... */)."""
+        # Resalta comentarios de línea (//) y de bloque (/* ... */).
         # Comentarios de bloque /* ... */
         pattern = r"/\*.*?\*/"
         for match in re.finditer(pattern, content, re.DOTALL):
@@ -217,7 +212,7 @@ class SyntaxHighlighter:
             self.text.tag_add("comment", start, end)
 
     def _highlight_strings(self, content):
-        """Resalta cadenas de texto con comillas dobles y simples."""
+        # Resalta cadenas de texto con comillas dobles y simples.
         # Cadenas con comillas dobles
         pattern = r'"(?:\\.|[^"\\])*"'
         for match in re.finditer(pattern, content):
@@ -233,7 +228,7 @@ class SyntaxHighlighter:
             self.text.tag_add("string", start, end)
 
     def _highlight_preprocessor(self, content):
-        """Resalta directivas de preprocesador (#include, #define, etc.)."""
+        # Resalta directivas de preprocesador (#include, #define, etc.).
         pattern = r"^\s*(#\w+)"
         for match in re.finditer(pattern, content, re.MULTILINE):
             start = f"1.0+{match.start(1)}c"
@@ -241,7 +236,7 @@ class SyntaxHighlighter:
             self.text.tag_add("preprocessor", start, end)
 
     def _highlight_libraries(self, content):
-        """Resalta los nombres de librerías en #include <...>."""
+        # Resalta los nombres de librerías en #include <...>.
         pattern = r"#include\s*<([^>]+)>"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start(1)}c"
@@ -249,7 +244,7 @@ class SyntaxHighlighter:
             self.text.tag_add("library", start, end)
 
     def _highlight_keywords(self, content):
-        """Resalta palabras clave de C++."""
+        # Resalta palabras clave de C++.
         pattern = r"\b(" + "|".join(re.escape(k) for k in self.KEYWORDS) + r")\b"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start()}c"
@@ -257,7 +252,7 @@ class SyntaxHighlighter:
             self.text.tag_add("keyword", start, end)
 
     def _highlight_types(self, content):
-        """Resalta tipos de datos de C++ y la STL."""
+        # Resalta tipos de datos de C++ y la STL.
         pattern = r"\b(" + "|".join(re.escape(t) for t in self.TYPES) + r")\b"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start()}c"
@@ -265,7 +260,7 @@ class SyntaxHighlighter:
             self.text.tag_add("type", start, end)
 
     def _highlight_namespaces(self, content):
-        """Resalta elementos del sistema (std, cout, cin, endl, etc.)."""
+        # Resalta elementos del sistema (std, cout, cin, endl, etc.).
         pattern = r"\b(" + "|".join(re.escape(n) for n in self.NAMESPACES) + r")\b"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start()}c"
@@ -273,12 +268,11 @@ class SyntaxHighlighter:
             self.text.tag_add("namespace", start, end)
 
     def _highlight_user_classes(self, content):
-        """Resalta nombres de clases definidas por el usuario.
-
-        Detecta identificadores que siguen a 'class', 'struct' o que
-        se usan como tipos (identificador seguido de un nombre de variable
-        o de '::' para constructores).
-        """
+        # Resalta nombres de clases definidas por el usuario.
+        #
+        # Detecta identificadores que siguen a 'class', 'struct' o que
+        # se usan como tipos (identificador seguido de un nombre de variable
+        # o de '::' para constructores).
         # Clases declaradas con 'class' o 'struct'
         pattern = r"\b(?:class|struct)\s+([A-Za-z_]\w*)"
         for match in re.finditer(pattern, content):
@@ -297,7 +291,7 @@ class SyntaxHighlighter:
             self.text.tag_add("user_class", start, end)
 
     def _highlight_numbers(self, content):
-        """Resalta números (decimales, hexadecimales y con sufijos)."""
+        # Resalta números (decimales, hexadecimales y con sufijos).
         pattern = r"\b(0x[0-9a-fA-F]+|\d+\.?\d*[fFlLuU]*)\b"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start()}c"
@@ -305,12 +299,11 @@ class SyntaxHighlighter:
             self.text.tag_add("number", start, end)
 
     def _highlight_functions(self, content):
-        """Resalta llamadas a funciones (identificador seguido de paréntesis).
-
-        Se omiten las palabras reservadas y los tipos conocidos para
-        evitar que construcciones como `if (`, `for (` o `static_cast<`
-        se coloreen como funciones (igual que en Visual Studio).
-        """
+        # Resalta llamadas a funciones (identificador seguido de paréntesis).
+        #
+        # Se omiten las palabras reservadas y los tipos conocidos para
+        # evitar que construcciones como `if (`, `for (` o `static_cast<`
+        # se coloreen como funciones (igual que en Visual Studio).
         pattern = r"\b([a-zA-Z_]\w*)\s*(?=\()"
         for match in re.finditer(pattern, content):
             name = match.group(1)
@@ -321,7 +314,7 @@ class SyntaxHighlighter:
             self.text.tag_add("function", start, end)
 
     def _highlight_operators(self, content):
-        """Resalta operadores compuestos de C++."""
+        # Resalta operadores compuestos de C++.
         pattern = r"(==|!=|<=|>=|&&|\|\||<<|>>|\+\+|--|->|::|\+=|-=|\*=|/=|%=|&=|\|=|\^=)"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start()}c"
@@ -329,7 +322,7 @@ class SyntaxHighlighter:
             self.text.tag_add("operator", start, end)
 
     def _highlight_brackets(self, content):
-        """Resalta corchetes, llaves y paréntesis."""
+        # Resalta corchetes, llaves y paréntesis.
         pattern = r"[{}()\[\]]"
         for match in re.finditer(pattern, content):
             start = f"1.0+{match.start()}c"

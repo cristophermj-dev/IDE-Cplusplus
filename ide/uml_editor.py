@@ -1,15 +1,13 @@
-"""
-Editor de diagramas UML para MeriCode C++.
-
-Este módulo proporciona un editor visual de diagramas de clases UML
-con las siguientes funcionalidades:
-- Crear, editar y eliminar clases UML (nombre, atributos, métodos).
-- Crear relaciones entre clases (asociación, herencia, composición,
-  agregación, dependencia).
-- Mover y redimensionar clases en el lienzo.
-- Guardar diagramas en formato XML.
-- Exportar diagramas a PDF y PNG.
-"""
+# Editor de diagramas UML para DevQbo.
+#
+# Este módulo proporciona un editor visual de diagramas de clases UML
+# con las siguientes funcionalidades:
+# - Crear, editar y eliminar clases UML (nombre, atributos, métodos).
+# - Crear relaciones entre clases (asociación, herencia, composición,
+# agregación, dependencia).
+# - Mover y redimensionar clases en el lienzo.
+# - Guardar diagramas en formato XML.
+# - Exportar diagramas a PDF y PNG.
 
 import os
 import sys
@@ -142,7 +140,7 @@ _FONT_8X8_BASIC = [
 
 
 class _PngImage:
-    """Rasterizador RGB mínimo para generar PNG sin depender de Pillow."""
+    # Rasterizador RGB mínimo para generar PNG sin depender de Pillow.
 
     def __init__(self, width, height, bg=(255, 255, 255)):
         self.width = int(width)
@@ -239,7 +237,7 @@ class _PngImage:
 
 
 def _hex_to_rgb(hex_color):
-    """Convierte un color hexadecimal '#RRGGBB' a una tupla RGB."""
+    # Convierte un color hexadecimal '#RRGGBB' a una tupla RGB.
     h = (hex_color or "#FFFFFF").lstrip("#")
     if len(h) == 3:
         h = "".join(ch * 2 for ch in h)
@@ -252,7 +250,7 @@ def _hex_to_rgb(hex_color):
 
 
 def _transliterate_ascii(text):
-    """Traduce caracteres no ASCII a su equivalente ASCII para el PNG."""
+    # Traduce caracteres no ASCII a su equivalente ASCII para el PNG.
     mapping = {
         "á": "a", "à": "a", "â": "a", "ä": "a", "ã": "a", "å": "a",
         "é": "e", "è": "e", "ê": "e", "ë": "e",
@@ -271,13 +269,13 @@ def _transliterate_ascii(text):
 
 
 def _pdf_escape(text):
-    """Escapa texto para usarlo en una cadena literal de PDF."""
+    # Escapa texto para usarlo en una cadena literal de PDF.
     text = text.encode("latin-1", "replace").decode("latin-1")
     return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
 
 def _write_pdf_file(file_path, width, height, content_bytes):
-    """Escribe un PDF mínimo con la biblioteca estándar de Python."""
+    # Escribe un PDF mínimo con la biblioteca estándar de Python.
     header = b"%PDF-1.4\n"
     objects = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
@@ -314,7 +312,7 @@ def _write_pdf_file(file_path, width, height, content_bytes):
 # ============================================================
 
 class UMLAttribute:
-    """Atributo de una clase UML."""
+    # Atributo de una clase UML.
 
     def __init__(self, name="", type_name="", visibility="+", is_static=False):
         self.name = name
@@ -323,7 +321,7 @@ class UMLAttribute:
         self.is_static = is_static
 
     def to_string(self):
-        """Convierte el atributo a su representación textual."""
+        # Convierte el atributo a su representación textual.
         prefix = self.visibility if self.visibility else "+"
         static = " {static}" if self.is_static else ""
         if self.type_name:
@@ -331,7 +329,7 @@ class UMLAttribute:
         return f"{prefix} {self.name}{static}"
 
     def to_xml(self):
-        """Convierte el atributo a XML."""
+        # Convierte el atributo a XML.
         elem = ET.Element("attribute")
         elem.set("name", self.name)
         elem.set("type", self.type_name)
@@ -341,7 +339,7 @@ class UMLAttribute:
 
     @classmethod
     def from_xml(cls, elem):
-        """Crea un atributo desde XML."""
+        # Crea un atributo desde XML.
         return cls(
             name=elem.get("name", ""),
             type_name=elem.get("type", ""),
@@ -351,7 +349,7 @@ class UMLAttribute:
 
 
 class UMLMethod:
-    """Método de una clase UML."""
+    # Método de una clase UML.
 
     def __init__(self, name="", return_type="void", params="", visibility="+",
                  is_static=False, is_abstract=False):
@@ -363,7 +361,7 @@ class UMLMethod:
         self.is_abstract = is_abstract
 
     def to_string(self):
-        """Convierte el método a su representación textual."""
+        # Convierte el método a su representación textual.
         prefix = self.visibility if self.visibility else "+"
         static = " {static}" if self.is_static else ""
         abstract = " {abstract}" if self.is_abstract else ""
@@ -371,7 +369,7 @@ class UMLMethod:
         return f"{prefix} {self.name}({self.params}){ret}{static}{abstract}"
 
     def to_xml(self):
-        """Convierte el método a XML."""
+        # Convierte el método a XML.
         elem = ET.Element("method")
         elem.set("name", self.name)
         elem.set("return_type", self.return_type)
@@ -383,7 +381,7 @@ class UMLMethod:
 
     @classmethod
     def from_xml(cls, elem):
-        """Crea un método desde XML."""
+        # Crea un método desde XML.
         return cls(
             name=elem.get("name", ""),
             return_type=elem.get("return_type", "void"),
@@ -395,7 +393,7 @@ class UMLMethod:
 
 
 class UMLClass:
-    """Clase UML con nombre, atributos y métodos."""
+    # Clase UML con nombre, atributos y métodos.
 
     def __init__(self, name="Clase", x=50, y=50, width=180, height=120,
                  color="#E8F0FE", text_color="#000000"):
@@ -412,17 +410,17 @@ class UMLClass:
         self.is_abstract = False
 
     def add_attribute(self, attr):
-        """Añade un atributo a la clase."""
+        # Añade un atributo a la clase.
         self.attributes.append(attr)
         self._recalculate_height()
 
     def add_method(self, method):
-        """Añade un método a la clase."""
+        # Añade un método a la clase.
         self.methods.append(method)
         self._recalculate_height()
 
     def _recalculate_height(self):
-        """Recalcula la altura de la clase según su contenido."""
+        # Recalcula la altura de la clase según su contenido.
         # Altura base: nombre + separadores + atributos + métodos
         attr_count = len(self.attributes)
         method_count = len(self.methods)
@@ -431,12 +429,12 @@ class UMLClass:
         self.height = max(120, content_height)
 
     def contains_point(self, px, py):
-        """Verifica si un punto está dentro de la clase."""
+        # Verifica si un punto está dentro de la clase.
         return (self.x <= px <= self.x + self.width and
                 self.y <= py <= self.y + self.height)
 
     def to_xml(self):
-        """Convierte la clase a XML."""
+        # Convierte la clase a XML.
         elem = ET.Element("class")
         elem.set("name", self.name)
         elem.set("x", str(self.x))
@@ -460,7 +458,7 @@ class UMLClass:
 
     @classmethod
     def from_xml(cls, elem):
-        """Crea una clase desde XML."""
+        # Crea una clase desde XML.
         cls_obj = cls(
             name=elem.get("name", "Clase"),
             x=int(elem.get("x", 50)),
@@ -488,7 +486,7 @@ class UMLClass:
 
 
 class UMLRelation:
-    """Relación entre dos clases UML."""
+    # Relación entre dos clases UML.
 
     # Tipos de relación
     ASSOCIATION = "association"
@@ -515,7 +513,7 @@ class UMLRelation:
         self.target_multiplicity = target_multiplicity
 
     def to_xml(self):
-        """Convierte la relación a XML."""
+        # Convierte la relación a XML.
         elem = ET.Element("relation")
         elem.set("source", str(self.source_id))
         elem.set("target", str(self.target_id))
@@ -527,7 +525,7 @@ class UMLRelation:
 
     @classmethod
     def from_xml(cls, elem):
-        """Crea una relación desde XML."""
+        # Crea una relación desde XML.
         return cls(
             source_id=int(elem.get("source", 0)),
             target_id=int(elem.get("target", 0)),
@@ -543,14 +541,13 @@ class UMLRelation:
 # ============================================================
 
 class AttributeDialog(tk.Toplevel):
-    """Diálogo para crear/editar un atributo UML."""
+    # Diálogo para crear/editar un atributo UML.
 
     def __init__(self, parent, title="Atributo", attr=None):
         super().__init__(parent)
         self.title(title)
         self.resizable(False, False)
         self.transient(parent.winfo_toplevel())
-        self.grab_set()
 
         self.result = None
 
@@ -562,9 +559,11 @@ class AttributeDialog(tk.Toplevel):
 
         self._build_ui()
         self._center_on_parent(parent)
+        self.wait_visibility()
+        self.grab_set()
 
     def _build_ui(self):
-        """Construye la interfaz del diálogo."""
+        # Construye la interfaz del diálogo.
         frame = ttk.Frame(self, padding=15)
         frame.pack(fill="both", expand=True)
 
@@ -602,7 +601,7 @@ class AttributeDialog(tk.Toplevel):
         frame.columnconfigure(1, weight=1)
 
     def _on_accept(self):
-        """Acepta el diálogo."""
+        # Acepta el diálogo.
         name = self.name_var.get().strip()
         if not name:
             messagebox.showwarning("Advertencia", "El nombre no puede estar vacío.",
@@ -617,7 +616,7 @@ class AttributeDialog(tk.Toplevel):
         self.destroy()
 
     def _center_on_parent(self, parent):
-        """Centra el diálogo sobre el padre."""
+        # Centra el diálogo sobre el padre.
         self.update_idletasks()
         x = parent.winfo_rootx() + (parent.winfo_width() - self.winfo_width()) // 2
         y = parent.winfo_rooty() + (parent.winfo_height() - self.winfo_height()) // 2
@@ -625,14 +624,13 @@ class AttributeDialog(tk.Toplevel):
 
 
 class MethodDialog(tk.Toplevel):
-    """Diálogo para crear/editar un método UML."""
+    # Diálogo para crear/editar un método UML.
 
     def __init__(self, parent, title="Método", method=None, class_name=None):
         super().__init__(parent)
         self.title(title)
         self.resizable(False, False)
         self.transient(parent.winfo_toplevel())
-        self.grab_set()
 
         self.result = None
         self.class_name = (class_name or "").strip()
@@ -649,9 +647,11 @@ class MethodDialog(tk.Toplevel):
         self.name_var.trace_add("write", lambda *a: self._update_return_state())
         self._update_return_state()
         self._center_on_parent(parent)
+        self.wait_visibility()
+        self.grab_set()
 
     def _build_ui(self):
-        """Construye la interfaz del diálogo."""
+        # Construye la interfaz del diálogo.
         frame = ttk.Frame(self, padding=15)
         frame.pack(fill="both", expand=True)
 
@@ -702,7 +702,7 @@ class MethodDialog(tk.Toplevel):
         frame.columnconfigure(1, weight=1)
 
     def _is_constructor_or_destructor(self, name):
-        """Determina si un nombre corresponde a un constructor o destructor."""
+        # Determina si un nombre corresponde a un constructor o destructor.
         name = (name or "").strip()
         if not name:
             return False
@@ -713,7 +713,7 @@ class MethodDialog(tk.Toplevel):
         return False
 
     def _update_return_state(self):
-        """Activa/desactiva el campo de retorno según el nombre del método."""
+        # Activa/desactiva el campo de retorno según el nombre del método.
         is_special = self._is_constructor_or_destructor(self.name_var.get())
         if is_special:
             self.return_var.set("")
@@ -727,7 +727,7 @@ class MethodDialog(tk.Toplevel):
             self.return_hint.configure(text="")
 
     def _on_accept(self):
-        """Acepta el diálogo."""
+        # Acepta el diálogo.
         name = self.name_var.get().strip()
         if not name:
             messagebox.showwarning("Advertencia", "El nombre no puede estar vacío.",
@@ -750,7 +750,7 @@ class MethodDialog(tk.Toplevel):
         self.destroy()
 
     def _center_on_parent(self, parent):
-        """Centra el diálogo sobre el padre."""
+        # Centra el diálogo sobre el padre.
         self.update_idletasks()
         x = parent.winfo_rootx() + (parent.winfo_width() - self.winfo_width()) // 2
         y = parent.winfo_rooty() + (parent.winfo_height() - self.winfo_height()) // 2
@@ -758,7 +758,7 @@ class MethodDialog(tk.Toplevel):
 
 
 class ClassDialog(tk.Toplevel):
-    """Diálogo para crear/editar una clase UML."""
+    # Diálogo para crear/editar una clase UML.
 
     def __init__(self, parent, title="Clase UML", uml_class=None):
         super().__init__(parent)
@@ -767,7 +767,6 @@ class ClassDialog(tk.Toplevel):
         self.minsize(520, 540)
         self.resizable(True, True)
         self.transient(parent.winfo_toplevel())
-        self.grab_set()
 
         self.result = None
         self.uml_class = uml_class
@@ -783,9 +782,11 @@ class ClassDialog(tk.Toplevel):
 
         self._build_ui()
         self._center_on_parent(parent)
+        self.wait_visibility()
+        self.grab_set()
 
     def _build_ui(self):
-        """Construye la interfaz del diálogo."""
+        # Construye la interfaz del diálogo.
         main_frame = ttk.Frame(self, padding=10)
         main_frame.pack(fill="both", expand=True)
 
@@ -873,7 +874,7 @@ class ClassDialog(tk.Toplevel):
         self._refresh_lists()
 
     def _choose_color(self):
-        """Abre el selector de color."""
+        # Abre el selector de color.
         color = colorchooser.askcolor(color=self.color_var.get(),
                                       parent=self)
         if color[1]:
@@ -881,7 +882,7 @@ class ClassDialog(tk.Toplevel):
             self.color_preview.configure(bg=color[1])
 
     def _refresh_lists(self):
-        """Actualiza las listas de atributos y métodos."""
+        # Actualiza las listas de atributos y métodos.
         self.attrs_list.delete(0, "end")
         for attr in (self.uml_class.attributes if self.uml_class else []):
             self.attrs_list.insert("end", attr.to_string())
@@ -891,7 +892,7 @@ class ClassDialog(tk.Toplevel):
             self.methods_list.insert("end", method.to_string())
 
     def _add_attribute(self):
-        """Añade un atributo."""
+        # Añade un atributo.
         dlg = AttributeDialog(self, "Nuevo atributo")
         self.wait_window(dlg)
         if dlg.result:
@@ -901,7 +902,7 @@ class ClassDialog(tk.Toplevel):
             self._refresh_lists()
 
     def _edit_attribute(self):
-        """Edita un atributo seleccionado."""
+        # Edita un atributo seleccionado.
         selection = self.attrs_list.curselection()
         if not selection:
             return
@@ -916,7 +917,7 @@ class ClassDialog(tk.Toplevel):
             self._refresh_lists()
 
     def _delete_attribute(self):
-        """Elimina un atributo seleccionado."""
+        # Elimina un atributo seleccionado.
         selection = self.attrs_list.curselection()
         if not selection:
             return
@@ -927,7 +928,7 @@ class ClassDialog(tk.Toplevel):
         self._refresh_lists()
 
     def _add_method(self):
-        """Añade un método."""
+        # Añade un método.
         dlg = MethodDialog(self, "Nuevo método", class_name=self.name_var.get())
         self.wait_window(dlg)
         if dlg.result:
@@ -937,7 +938,7 @@ class ClassDialog(tk.Toplevel):
             self._refresh_lists()
 
     def _edit_method(self):
-        """Edita un método seleccionado."""
+        # Edita un método seleccionado.
         selection = self.methods_list.curselection()
         if not selection:
             return
@@ -953,7 +954,7 @@ class ClassDialog(tk.Toplevel):
             self._refresh_lists()
 
     def _delete_method(self):
-        """Elimina un método seleccionado."""
+        # Elimina un método seleccionado.
         selection = self.methods_list.curselection()
         if not selection:
             return
@@ -964,7 +965,7 @@ class ClassDialog(tk.Toplevel):
         self._refresh_lists()
 
     def _on_accept(self):
-        """Acepta el diálogo."""
+        # Acepta el diálogo.
         name = self.name_var.get().strip()
         if not name:
             messagebox.showwarning("Advertencia", "El nombre no puede estar vacío.",
@@ -985,7 +986,7 @@ class ClassDialog(tk.Toplevel):
         self.destroy()
 
     def _center_on_parent(self, parent):
-        """Centra el diálogo sobre el padre."""
+        # Centra el diálogo sobre el padre.
         self.update_idletasks()
         x = parent.winfo_rootx() + (parent.winfo_width() - self.winfo_width()) // 2
         y = parent.winfo_rooty() + (parent.winfo_height() - self.winfo_height()) // 2
@@ -993,7 +994,7 @@ class ClassDialog(tk.Toplevel):
 
 
 class RelationDialog(tk.Toplevel):
-    """Diálogo para crear/editar una relación UML."""
+    # Diálogo para crear/editar una relación UML.
 
     def __init__(self, parent, title="Relación", relation=None,
                  class_names=None):
@@ -1003,7 +1004,6 @@ class RelationDialog(tk.Toplevel):
         self.minsize(440, 260)
         self.resizable(True, True)
         self.transient(parent.winfo_toplevel())
-        self.grab_set()
 
         self.result = None
         self.class_names = class_names or []
@@ -1027,9 +1027,11 @@ class RelationDialog(tk.Toplevel):
 
         self._build_ui()
         self._center_on_parent(parent)
+        self.wait_visibility()
+        self.grab_set()
 
     def _build_ui(self):
-        """Construye la interfaz del diálogo."""
+        # Construye la interfaz del diálogo.
         frame = ttk.Frame(self, padding=15)
         frame.pack(fill="both", expand=True)
 
@@ -1068,7 +1070,7 @@ class RelationDialog(tk.Toplevel):
         frame.columnconfigure(1, weight=1)
 
     def _on_accept(self):
-        """Acepta el diálogo."""
+        # Acepta el diálogo.
         # Convertir la etiqueta legible al valor interno del tipo
         label_to_key = {v: k for k, v in UMLRelation.TYPE_LABELS.items()}
         rel_type = label_to_key.get(self.type_var.get(), UMLRelation.ASSOCIATION)
@@ -1084,7 +1086,7 @@ class RelationDialog(tk.Toplevel):
         self.destroy()
 
     def _center_on_parent(self, parent):
-        """Centra el diálogo sobre el padre."""
+        # Centra el diálogo sobre el padre.
         self.update_idletasks()
         x = parent.winfo_rootx() + (parent.winfo_width() - self.winfo_width()) // 2
         y = parent.winfo_rooty() + (parent.winfo_height() - self.winfo_height()) // 2
@@ -1096,7 +1098,7 @@ class RelationDialog(tk.Toplevel):
 # ============================================================
 
 class UMLEditor(tk.Frame):
-    """Editor visual de diagramas de clases UML."""
+    # Editor visual de diagramas de clases UML.
 
     RESIZE_HANDLE = 7
 
@@ -1137,7 +1139,7 @@ class UMLEditor(tk.Frame):
         self._build_ui()
 
     def _build_ui(self):
-        """Construye la interfaz del editor UML."""
+        # Construye la interfaz del editor UML.
         # Barra de herramientas
         toolbar = ttk.Frame(self)
         toolbar.pack(side="top", fill="x", padx=2, pady=2)
@@ -1218,12 +1220,16 @@ class UMLEditor(tk.Frame):
         self.canvas.bind("<Button-3>", self._on_right_click)
         self.canvas.bind("<Control-MouseWheel>", self._on_zoom_wheel)
         self.canvas.bind("<Motion>", self._on_motion)
+        self.canvas.bind("<Delete>", self._on_delete_key)
+
+        # El lienzo debe tener el foco para recibir la tecla Suprimir.
+        self.canvas.focus_set()
 
         # Dibujar fondo
         self._draw_grid()
 
     def _build_relation_panel(self, panel):
-        """Construye el panel lateral con los tipos de relación arrastrables."""
+        # Construye el panel lateral con los tipos de relación arrastrables.
         types = [
             (UMLRelation.ASSOCIATION, "→", "Asociación"),
             (UMLRelation.INHERITANCE, "▷", "Herencia"),
@@ -1258,7 +1264,7 @@ class UMLEditor(tk.Frame):
     # --- Gestión de clases ---
 
     def add_class(self, uml_class=None):
-        """Añade una nueva clase al diagrama."""
+        # Añade una nueva clase al diagrama.
         if uml_class is None:
             dlg = ClassDialog(self, "Nueva clase UML")
             self.wait_window(dlg)
@@ -1282,7 +1288,7 @@ class UMLEditor(tk.Frame):
         return class_id
 
     def edit_selected_class(self):
-        """Edita la clase seleccionada."""
+        # Edita la clase seleccionada.
         if self.selected_class_id is None:
             messagebox.showinfo("Seleccionar", "Seleccione una clase para editar.",
                                 parent=self)
@@ -1296,20 +1302,21 @@ class UMLEditor(tk.Frame):
             self.redraw()
 
     def delete_selected(self):
-        """Elimina la clase o relación seleccionada."""
+        # Elimina la clase o relación seleccionada.
+        # Las relaciones se evalúan primero porque, al seleccionar una,
+        # selected_class_id queda en None.
+        rel_idx = getattr(self, "_selected_relation_idx", None)
+        if rel_idx is not None:
+            if messagebox.askyesno("Eliminar", "¿Eliminar la relación seleccionada?",
+                                   parent=self):
+                del self.relations[rel_idx]
+                self._selected_relation_idx = None
+                self.redraw()
+            return
+
         if self.selected_class_id is None:
             messagebox.showinfo("Seleccionar", "Seleccione un elemento para eliminar.",
                                 parent=self)
-            return
-
-        # Verificar si hay una relación seleccionada
-        if hasattr(self, "_selected_relation_idx") and self._selected_relation_idx is not None:
-            idx = self._selected_relation_idx
-            if messagebox.askyesno("Eliminar", "¿Eliminar la relación seleccionada?",
-                                   parent=self):
-                del self.relations[idx]
-                self._selected_relation_idx = None
-                self.redraw()
             return
 
         class_id = self.selected_class_id
@@ -1322,8 +1329,14 @@ class UMLEditor(tk.Frame):
             self.selected_class_id = None
             self.redraw()
 
+    def _on_delete_key(self, event=None):
+        # Permite eliminar con la tecla Suprimir (Delete) del teclado.
+        if self.selected_class_id is not None or getattr(self, "_selected_relation_idx", None) is not None:
+            self.delete_selected()
+        return "break"
+
     def clear_all(self):
-        """Limpia todo el diagrama."""
+        # Limpia todo el diagrama.
         if not self.classes and not self.relations:
             return
         if messagebox.askyesno("Limpiar", "¿Eliminar todas las clases y relaciones?",
@@ -1337,7 +1350,7 @@ class UMLEditor(tk.Frame):
     # --- Gestión de relaciones ---
 
     def _create_relation(self, source_id, target_id, rel_type=None):
-        """Crea una relación entre dos clases."""
+        # Crea una relación entre dos clases.
         if source_id == target_id:
             messagebox.showwarning("Advertencia",
                                    "No se puede crear una relación consigo misma.",
@@ -1370,7 +1383,7 @@ class UMLEditor(tk.Frame):
         self.redraw()
 
     def _start_relation_drag(self, rel_type, event):
-        """Inicia el arrastre de una flecha de relación desde el panel."""
+        # Inicia el arrastre de una flecha de relación desde el panel.
         if len(self.classes) < 2:
             messagebox.showinfo(
                 "Relación",
@@ -1389,7 +1402,7 @@ class UMLEditor(tk.Frame):
         self.update_status("Arrastre la flecha hasta la clase origen y suelte")
 
     def _on_relation_drag_motion(self, event):
-        """Actualiza la línea temporal mientras se arrastra la flecha."""
+        # Actualiza la línea temporal mientras se arrastra la flecha.
         if not self._rel_drag_active:
             return
         cx, cy = self._event_to_canvas(event)
@@ -1399,7 +1412,7 @@ class UMLEditor(tk.Frame):
                                 width=2, dash=(5, 3), tags="rel_temp")
 
     def _on_relation_drag_release(self, event):
-        """Suelta la flecha: define la clase origen de la relación."""
+        # Suelta la flecha: define la clase origen de la relación.
         if not self._rel_drag_active:
             return
         try:
@@ -1424,7 +1437,7 @@ class UMLEditor(tk.Frame):
         self.update_status("Ahora haga clic en la clase destino")
 
     def _finish_relation_mode(self):
-        """Limpia el estado del modo de creación de relaciones."""
+        # Limpia el estado del modo de creación de relaciones.
         self.creating_relation = False
         self.relation_source_id = None
         self._rel_drag_type = None
@@ -1434,13 +1447,13 @@ class UMLEditor(tk.Frame):
         self.canvas.configure(cursor="")
 
     def _event_to_canvas(self, event):
-        """Convierte coordenadas de pantalla (root) a coordenadas del canvas."""
+        # Convierte coordenadas de pantalla (root) a coordenadas del canvas.
         wx = event.x_root - self.canvas.winfo_rootx()
         wy = event.y_root - self.canvas.winfo_rooty()
         return self.canvas.canvasx(wx), self.canvas.canvasy(wy)
 
     def _edit_relation(self, idx):
-        """Edita una relación existente."""
+        # Edita una relación existente.
         if idx < 0 or idx >= len(self.relations):
             return
         rel = self.relations[idx]
@@ -1455,7 +1468,7 @@ class UMLEditor(tk.Frame):
     # --- Eventos del canvas ---
 
     def _on_click(self, event):
-        """Maneja clics en el canvas."""
+        # Maneja clics en el canvas.
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
 
@@ -1513,7 +1526,7 @@ class UMLEditor(tk.Frame):
                 self.redraw()
 
     def _on_drag(self, event):
-        """Maneja arrastre de clases y redimensionado por las esquinas."""
+        # Maneja arrastre de clases y redimensionado por las esquinas.
         if self._rel_drag_active:
             return
 
@@ -1539,7 +1552,7 @@ class UMLEditor(tk.Frame):
         self.redraw()
 
     def _on_release(self, event):
-        """Maneja liberación del mouse."""
+        # Maneja liberación del mouse.
         self.dragging = False
         self.drag_offset = None
         self.resizing = False
@@ -1547,7 +1560,7 @@ class UMLEditor(tk.Frame):
         self.resize_start = None
 
     def _on_motion(self, event):
-        """Actualiza el cursor y la línea temporal según el puntero."""
+        # Actualiza el cursor y la línea temporal según el puntero.
         if self._rel_drag_active:
             return
         x = self.canvas.canvasx(event.x)
@@ -1574,7 +1587,7 @@ class UMLEditor(tk.Frame):
             self.canvas.configure(cursor="")
 
     def _get_resize_corner(self, x, y):
-        """Devuelve (class_id, esquina) si el punto está sobre una esquina."""
+        # Devuelve (class_id, esquina) si el punto está sobre una esquina.
         order = []
         if self.selected_class_id is not None:
             order.append(self.selected_class_id)
@@ -1598,7 +1611,7 @@ class UMLEditor(tk.Frame):
         return None
 
     def _resize_selected(self, x, y):
-        """Redimensiona la clase seleccionada según la esquina arrastrada."""
+        # Redimensiona la clase seleccionada según la esquina arrastrada.
         if self.selected_class_id is None or self.resize_start is None:
             return
         uml_class = self.classes.get(self.selected_class_id)
@@ -1634,7 +1647,7 @@ class UMLEditor(tk.Frame):
         uml_class.height = new_h
 
     def _on_double_click(self, event):
-        """Maneja doble clic."""
+        # Maneja doble clic.
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
 
@@ -1650,7 +1663,7 @@ class UMLEditor(tk.Frame):
             self._edit_relation(rel_idx)
 
     def _on_right_click(self, event):
-        """Muestra menú contextual."""
+        # Muestra menú contextual.
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
 
@@ -1691,14 +1704,14 @@ class UMLEditor(tk.Frame):
             menu.grab_release()
 
     def _on_zoom_wheel(self, event):
-        """Maneja zoom con Ctrl + rueda del mouse."""
+        # Maneja zoom con Ctrl + rueda del mouse.
         if event.delta > 0:
             self.zoom_in()
         else:
             self.zoom_out()
 
     def _add_attr_to_class(self, class_id):
-        """Añade un atributo a una clase específica."""
+        # Añade un atributo a una clase específica.
         dlg = AttributeDialog(self, "Nuevo atributo")
         self.wait_window(dlg)
         if dlg.result:
@@ -1706,7 +1719,7 @@ class UMLEditor(tk.Frame):
             self.redraw()
 
     def _add_method_to_class(self, class_id):
-        """Añade un método a una clase específica."""
+        # Añade un método a una clase específica.
         dlg = MethodDialog(self, "Nuevo método",
                            class_name=self.classes[class_id].name)
         self.wait_window(dlg)
@@ -1715,14 +1728,14 @@ class UMLEditor(tk.Frame):
             self.redraw()
 
     def _find_class_at(self, x, y):
-        """Encuentra la clase en un punto."""
+        # Encuentra la clase en un punto.
         for class_id, uml_class in self.classes.items():
             if uml_class.contains_point(x, y):
                 return class_id
         return None
 
     def _find_relation_near(self, x, y, threshold=10):
-        """Encuentra una relación cerca de un punto."""
+        # Encuentra una relación cerca de un punto.
         for idx, rel in enumerate(self.relations):
             if rel.source_id not in self.classes or rel.target_id not in self.classes:
                 continue
@@ -1736,7 +1749,7 @@ class UMLEditor(tk.Frame):
         return None
 
     def _point_to_segment_distance(self, px, py, x1, y1, x2, y2):
-        """Calcula la distancia de un punto a un segmento."""
+        # Calcula la distancia de un punto a un segmento.
         dx = x2 - x1
         dy = y2 - y1
         if dx == 0 and dy == 0:
@@ -1751,14 +1764,14 @@ class UMLEditor(tk.Frame):
         return math.sqrt((px - closest_x) ** 2 + (py - closest_y) ** 2)
 
     def _get_class_center(self, uml_class):
-        """Obtiene el centro de una clase."""
+        # Obtiene el centro de una clase.
         return (uml_class.x + uml_class.width / 2,
                 uml_class.y + uml_class.height / 2)
 
     # --- Dibujo ---
 
     def _draw_grid(self):
-        """Dibuja la cuadrícula de fondo."""
+        # Dibuja la cuadrícula de fondo.
         self.canvas.delete("grid")
         for x in range(0, 2000, 20):
             self.canvas.create_line(x, 0, x, 2000, fill=self.grid_color,
@@ -1768,7 +1781,7 @@ class UMLEditor(tk.Frame):
                                     tags="grid")
 
     def redraw(self):
-        """Redibuja todo el diagrama."""
+        # Redibuja todo el diagrama.
         self.canvas.delete("all")
         self._draw_grid()
 
@@ -1781,7 +1794,7 @@ class UMLEditor(tk.Frame):
             self._draw_class(class_id, uml_class)
 
     def _draw_class(self, class_id, uml_class):
-        """Dibuja una clase UML en el canvas."""
+        # Dibuja una clase UML en el canvas.
         x, y = uml_class.x, uml_class.y
         w, h = uml_class.width, uml_class.height
 
@@ -1884,7 +1897,7 @@ class UMLEditor(tk.Frame):
                 )
 
     def _draw_relation(self, rel, idx):
-        """Dibuja una relación UML."""
+        # Dibuja una relación UML.
         if rel.source_id not in self.classes or rel.target_id not in self.classes:
             return
 
@@ -1952,7 +1965,7 @@ class UMLEditor(tk.Frame):
             )
 
     def _get_edge_point(self, src, tgt):
-        """Obtiene el punto de borde de src hacia tgt."""
+        # Obtiene el punto de borde de src hacia tgt.
         cx1, cy1 = self._get_class_center(src)
         cx2, cy2 = self._get_class_center(tgt)
 
@@ -1974,7 +1987,7 @@ class UMLEditor(tk.Frame):
         return cx1 + dx * scale, cy1 + dy * scale
 
     def _draw_line_with_arrow(self, x1, y1, x2, y2, color, width, arrow_type="arrow"):
-        """Dibuja una línea con flecha."""
+        # Dibuja una línea con flecha.
         self.canvas.create_line(x1, y1, x2, y2, fill=color, width=width)
 
         # Calcular ángulo
@@ -2003,7 +2016,7 @@ class UMLEditor(tk.Frame):
             self.canvas.create_line(x2, y2, ax2, ay2, fill=color, width=width)
 
     def _draw_line_with_diamond(self, x1, y1, x2, y2, color, width, filled=False):
-        """Dibuja una línea con rombo en el origen."""
+        # Dibuja una línea con rombo en el origen.
         self.canvas.create_line(x1, y1, x2, y2, fill=color, width=width)
 
         # Rombo en el origen
@@ -2032,7 +2045,7 @@ class UMLEditor(tk.Frame):
         )
 
     def _draw_dashed_line_with_arrow(self, x1, y1, x2, y2, color, width):
-        """Dibuja una línea discontinua con flecha."""
+        # Dibuja una línea discontinua con flecha.
         self.canvas.create_line(x1, y1, x2, y2, fill=color, width=width,
                                 dash=(5, 3))
 
@@ -2049,39 +2062,44 @@ class UMLEditor(tk.Frame):
     # --- Zoom ---
 
     def zoom_in(self):
-        """Aumenta el zoom."""
+        # Aumenta el zoom.
         self.zoom_factor = min(2.0, self.zoom_factor * 1.2)
         self.canvas.scale("all", 0, 0, 1.2, 1.2)
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def zoom_out(self):
-        """Disminuye el zoom."""
+        # Disminuye el zoom.
         self.zoom_factor = max(0.5, self.zoom_factor / 1.2)
         self.canvas.scale("all", 0, 0, 1 / 1.2, 1 / 1.2)
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def reset_zoom(self):
-        """Restablece el zoom."""
+        # Restablece el zoom.
         self.zoom_factor = 1.0
         self.redraw()
 
     # --- Guardar / Cargar XML ---
 
     def save_xml(self, file_path=None):
-        """Guarda el diagrama en formato XML."""
+        # Guarda el diagrama en formato XML (.xml).
         if not file_path:
             file_path = filedialog.asksaveasfilename(
                 parent=self,
                 title="Guardar diagrama UML",
-                defaultextension=".uml",
+                defaultextension=".xml",
                 filetypes=[
-                    ("Diagramas UML", "*.uml"),
-                    ("Archivos XML", "*.xml"),
+                    ("Diagramas UML (*.xml)", "*.xml"),
                     ("Todos los archivos", "*.*"),
                 ],
             )
             if not file_path:
                 return False
+
+        # Asegurar que el archivo siempre quede con extensión .xml.
+        if file_path.lower().endswith(".uml"):
+            file_path = file_path[:-4] + ".xml"
+        elif not file_path.lower().endswith(".xml"):
+            file_path += ".xml"
 
         try:
             root = ET.Element("uml_diagram")
@@ -2114,14 +2132,14 @@ class UMLEditor(tk.Frame):
             return False
 
     def open_xml(self, file_path=None):
-        """Carga un diagrama desde XML."""
+        # Carga un diagrama desde XML.
         if not file_path:
             file_path = filedialog.askopenfilename(
                 parent=self,
                 title="Abrir diagrama UML",
                 filetypes=[
-                    ("Diagramas UML", "*.uml"),
-                    ("Archivos XML", "*.xml"),
+                    ("Diagramas UML (*.xml)", "*.xml"),
+                    ("Diagramas UML antiguos (*.uml)", "*.uml"),
                     ("Todos los archivos", "*.*"),
                 ],
             )
@@ -2171,7 +2189,7 @@ class UMLEditor(tk.Frame):
     # --- Exportación ---
 
     def export_png(self, file_path=None):
-        """Exporta el diagrama a PNG."""
+        # Exporta el diagrama a PNG.
         if not self.classes:
             messagebox.showinfo("Exportar", "No hay clases para exportar.",
                                 parent=self)
@@ -2305,7 +2323,7 @@ class UMLEditor(tk.Frame):
             return False
 
     def export_pdf(self, file_path=None):
-        """Exporta el diagrama a PDF."""
+        # Exporta el diagrama a PDF.
         if not self.classes:
             messagebox.showinfo("Exportar", "No hay clases para exportar.",
                                 parent=self)
@@ -2425,7 +2443,7 @@ class UMLEditor(tk.Frame):
             return False
 
     def _export_pdf_pure(self, file_path):
-        """Exporta a PDF usando únicamente la biblioteca estándar."""
+        # Exporta a PDF usando únicamente la biblioteca estándar.
         try:
             classes = list(self.classes.values())
             min_x = min(c.x for c in classes)
@@ -2513,7 +2531,7 @@ class UMLEditor(tk.Frame):
 
 
     def _export_png_pure(self, file_path):
-        """Exporta a PNG usando únicamente la biblioteca estándar."""
+        # Exporta a PNG usando únicamente la biblioteca estándar.
         try:
             min_x = min(c.x for c in self.classes.values())
             min_y = min(c.y for c in self.classes.values())
@@ -2591,12 +2609,12 @@ class UMLEditor(tk.Frame):
     # --- Utilidades ---
 
     def update_status(self, message):
-        """Actualiza el mensaje de estado."""
+        # Actualiza el mensaje de estado.
         if self.ide and hasattr(self.ide, "update_status"):
             self.ide.update_status(message)
 
     def apply_theme(self, colors=None):
-        """Aplica el tema al editor UML."""
+        # Aplica el tema al editor UML.
         if colors is None and self.ide:
             colors = self.ide.theme_manager.get_colors()
 

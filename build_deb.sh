@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # =============================================================================
-# build_deb.sh - Construye el paquete .deb de MeriCode C++ (instalable en Ubuntu)
+# build_deb.sh - Construye el paquete .deb de DevQbo (instalable en Ubuntu)
 #
 # Uso:   bash build_deb.sh
-# Salida: mericode-cpp_<version>_all.deb en el directorio padre del proyecto.
+# Salida: devqbo_<version>_all.deb en el directorio padre del proyecto.
 #
 # Las dependencias g++, git y gdb van en "Depends" para que, al instalar con
-# `apt install ./mericode-cpp_*.deb`, se instalen automáticamente si faltan.
+# `apt install ./devqbo_*.deb`, se instalen automáticamente si faltan.
 # =============================================================================
 set -euo pipefail
 
 # --- Configuración del paquete ---
-PKG_NAME="mericode-cpp"
+PKG_NAME="devqbo"
 VERSION="1.0.0"
 ARCH="all"
 MAINTAINER="MSc. Cristopher Montero Jiménez <cristopher.montero.jimenez@una.ac.cr>"
@@ -30,7 +30,7 @@ mkdir -p "${PKG_ROOT}/DEBIAN"
 mkdir -p "${PKG_ROOT}/usr/lib/${PKG_NAME}"
 mkdir -p "${PKG_ROOT}/usr/bin"
 mkdir -p "${PKG_ROOT}/usr/share/applications"
-mkdir -p "${PKG_ROOT}/usr/share/icons/hicolor/scalable/apps"
+mkdir -p "${PKG_ROOT}/usr/share/icons/hicolor/256x256/apps"
 mkdir -p "${PKG_ROOT}/usr/share/doc/${PKG_NAME}"
 
 # --- 2. Copiar el código fuente (sin bytecode .pyc) ---
@@ -50,17 +50,18 @@ Section: devel
 Priority: optional
 Architecture: ${ARCH}
 Maintainer: ${MAINTAINER}
-Depends: python3, python3-tk, g++, git, gdb
+Depends: python3, python3-tk, g++, git, gdb, python3-pil, python3-reportlab
 Installed-Size: PLACEHOLDER
-Description: MeriCode C++ - IDE para programar en C++
- MeriCode C++ es un IDE completo para programar en C++,
+Description: DevQbo - IDE para programar en C++
+ DevQbo es un IDE completo para programar en C++,
  desarrollado en Python con Tkinter, con interfaz gráfica
  moderna en tema oscuro.
  .
  Incluye editor con resaltado de sintaxis C++, autocompletado,
  números de línea, múltiples pestañas, compilación y ejecución
- con g++/clang++, depuración con GDB, gestión de proyectos y
- sincronización con GitHub.
+ con g++/clang++, depuración con GDB, gestión de proyectos,
+ sincronización con GitHub y editor de diagramas UML con
+ guardado en XML y exportación a PNG/PDF.
 CONTROL
 
 # --- 5. Script de post-instalación ---
@@ -80,21 +81,21 @@ exit 0
 POSTINST
 
 # --- 6. Lanzador en /usr/bin ---
-cat > "${PKG_ROOT}/usr/bin/mericode" <<'LAUNCHER'
+cat > "${PKG_ROOT}/usr/bin/devqbo" <<'LAUNCHER'
 #!/bin/sh
-# MeriCode C++ - Lanzador de la aplicación.
-exec /usr/bin/python3 /usr/lib/mericode-cpp/main.py "$@"
+# DevQbo - Lanzador de la aplicación.
+exec /usr/bin/python3 /usr/lib/devqbo/main.py "$@"
 LAUNCHER
 
 # --- 7. Entrada del menú de aplicaciones ---
-cat > "${PKG_ROOT}/usr/share/applications/mericode.desktop" <<'DESKTOP'
+cat > "${PKG_ROOT}/usr/share/applications/devqbo.desktop" <<'DESKTOP'
 [Desktop Entry]
 Type=Application
-Name=MeriCode C++
+Name=DevQbo
 GenericName=IDE C++
 Comment=IDE completo para programar en C++
-Exec=mericode %F
-Icon=mericode
+Exec=devqbo %F
+Icon=devqbo
 Terminal=false
 Categories=Development;IDE;
 Keywords=IDE;C++;Editor;Compilador;Debugger;
@@ -102,20 +103,9 @@ StartupNotify=true
 MimeType=text/x-c++src;text/x-c++hdr;text/plain;
 DESKTOP
 
-# --- 8. Icono SVG ---
-cat > "${PKG_ROOT}/usr/share/icons/hicolor/scalable/apps/mericode.svg" <<'SVG'
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1e2a4a"/>
-      <stop offset="100%" stop-color="#0f172a"/>
-    </linearGradient>
-  </defs>
-  <rect x="8" y="8" width="240" height="240" rx="48" fill="url(#bg)"/>
-  <rect x="8" y="8" width="240" height="240" rx="48" fill="none" stroke="#3b82f6" stroke-width="6"/>
-  <text x="128" y="170" font-family="DejaVu Sans, sans-serif" font-size="96" font-weight="bold" fill="#ffffff" text-anchor="middle">C++</text>
-</svg>
-SVG
+# --- 8. Icono de la aplicación (logo del gato DevQbo) ---
+cp "${PROJECT_DIR}/ide/assets/icon.png" \
+   "${PKG_ROOT}/usr/share/icons/hicolor/256x256/apps/devqbo.png"
 
 # --- 9. Changelog (política Debian) ---
 cat > "${PKG_ROOT}/usr/share/doc/${PKG_NAME}/changelog" <<CHANGELOG
@@ -130,7 +120,7 @@ CHANGELOG
 # --- 10. Permisos estándar ---
 find "${PKG_ROOT}" -type d -exec chmod 0755 {} +
 find "${PKG_ROOT}" -type f -exec chmod 0644 {} +
-chmod 0755 "${PKG_ROOT}/usr/bin/mericode" "${PKG_ROOT}/DEBIAN/postinst"
+chmod 0755 "${PKG_ROOT}/usr/bin/devqbo" "${PKG_ROOT}/DEBIAN/postinst"
 
 # --- 11. Comprimir changelog ---
 gzip -9 -n -f "${PKG_ROOT}/usr/share/doc/${PKG_NAME}/changelog"

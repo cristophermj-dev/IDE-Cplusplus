@@ -1,30 +1,30 @@
 ; =============================================================================
-; MeriCode C++ - Script de instalación para Windows (Inno Setup 6)
+; DevQbo - Script de instalación para Windows (Inno Setup 6)
 ; =============================================================================
 ; Requiere: Inno Setup 6  ->  https://jrsoftware.org/isinfo.php
-; Antes de compilar, genera dist\MeriCode.exe con build_windows.bat.
-; El instalador resultante (dist\MeriCode-Setup.exe) instalará el IDE y,
+; Antes de compilar, genera dist\DevQbo.exe con build_windows.bat.
+; El instalador resultante (dist\DevQbo-Setup.exe) instalará el IDE y,
 ; durante la instalación, descargará e instalará automáticamente:
 ;   - Git para Windows
 ;   - MinGW-w64 (g++ y gdb)
 ; y los añadirá al PATH del sistema.
 ; =============================================================================
 
-#define MyAppName "MeriCode C++"
+#define MyAppName "DevQbo"
 #define MyAppVersion "1.0.0"
-#define MyAppPublisher "MERIMAD"
-#define MyAppExeName "MeriCode.exe"
+#define MyAppPublisher "DevQbo"
+#define MyAppExeName "DevQbo.exe"
 
 [Setup]
 AppId={{7B2A3F1D-9C4E-4A8B-B6D2-1E5F8C3A9D07}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\MeriCode
+DefaultDirName={autopf}\DevQbo
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=dist
-OutputBaseFilename=MeriCode-Setup
+OutputBaseFilename=DevQbo-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -46,7 +46,7 @@ Source: "install_toolchain.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\Desinstalar MeriCode"; Filename: "{uninstallexe}"
+Name: "{group}\Desinstalar DevQbo"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
