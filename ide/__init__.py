@@ -5,7 +5,7 @@
 # - editor: Números de línea del editor.
 # - console: Panel de consola con salida, errores y depuración.
 # - compiler: Compilación, ejecución y depuración de código C++.
-# - project: Gestión de proyectos .cmj.
+# - project: Gestión de proyectos .qbo.
 # - github_sync: Publicación y sincronización con GitHub.
 # - theme: Sistema de temas claro/oscuro.
 # - syntax_highlighter: Resaltado de sintaxis para C++.

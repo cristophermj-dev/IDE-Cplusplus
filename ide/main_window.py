@@ -7,7 +7,7 @@
 # - Barra de herramientas con acciones de archivo, proyecto y compilación.
 # - Menús completos (Archivo, Proyecto, Editar, Ver, Compilar, Ejecutar, Depurar, Ayuda).
 # - Consola de salida con pestañas para salida, errores y depuración.
-# - Gestión de proyectos .cmj y creación de clases.
+# - Gestión de proyectos .qbo y creación de clases.
 # - Compilación, ejecución y depuración de programas C++.
 # - Temas claro y oscuro.
 
@@ -1262,7 +1262,7 @@ class MainWindow(tk.Tk):
     # --- Gestión de proyectos ---
 
     def new_project(self):
-        # Crea un nuevo proyecto .cmj.
+        # Crea un nuevo proyecto .qbo.
         import tkinter.simpledialog as simpledialog
 
         name = simpledialog.askstring(
@@ -1304,12 +1304,12 @@ class MainWindow(tk.Tk):
             messagebox.showerror("Error", f"No se pudo crear el proyecto:\n{e}")
 
     def open_project(self):
-        # Abre un proyecto .cmj existente.
+        # Abre un proyecto .qbo existente.
         file_path = filedialog.askopenfilename(
             parent=self,
             title="Abrir proyecto",
             filetypes=[
-                ("Proyectos C++", "*.cmj"),
+                ("Proyectos DevQbo", "*.qbo"),
                 ("Todos los archivos", "*.*"),
             ],
         )
@@ -1688,17 +1688,17 @@ class MainWindow(tk.Tk):
         self._open_cloned_project(clone_dir, repo_name)
 
     def _open_cloned_project(self, clone_dir, repo_name):
-        # Abre el proyecto clonado (usa su .cmj si existe, o crea uno).
+        # Abre el proyecto clonado (usa su .qbo si existe, o crea uno).
         #
         # Args:
         # clone_dir: Directorio raíz del proyecto clonado.
-        # repo_name: Nombre del repositorio (para el proyecto .cmj).
+        # repo_name: Nombre del repositorio (para el proyecto .qbo).
         try:
-            cmj = self._find_cmj_file(clone_dir)
-            if cmj:
-                project = self.project_manager.open_project(cmj)
+            qbo = self._find_qbo_file(clone_dir)
+            if qbo:
+                project = self.project_manager.open_project(qbo)
             else:
-                # Crear un proyecto .cmj dentro de la carpeta clonada.
+                # Crear un proyecto .qbo dentro de la carpeta clonada.
                 project = Project(name=repo_name, path=clone_dir)
                 project_file = project.save()
                 project.scan_files()
@@ -1724,15 +1724,15 @@ class MainWindow(tk.Tk):
                 "Error", f"No se pudo abrir el proyecto clonado:\n{e}"
             )
 
-    def _find_cmj_file(self, project_dir):
-        # Busca un archivo .cmj dentro del directorio (evitando .git).
+    def _find_qbo_file(self, project_dir):
+        # Busca un archivo .qbo dentro del directorio (evitando .git).
         #
         # Returns:
-        # str: Ruta del primer archivo .cmj encontrado, o None.
+        # str: Ruta del primer archivo .qbo encontrado, o None.
         for root, dirs, files in os.walk(project_dir):
             dirs[:] = [d for d in dirs if d != ".git"]
             for name in files:
-                if name.endswith(".cmj"):
+                if name.endswith(".qbo"):
                     return os.path.join(root, name)
         return None
 
@@ -1809,7 +1809,7 @@ class MainWindow(tk.Tk):
         #
         # Cuando add_to_project es True y hay un proyecto abierto,
         # el archivo se crea dentro del directorio del proyecto y se
-        # registra en la lista de archivos del proyecto (.cmj).
+        # registra en la lista de archivos del proyecto (.qbo).
         #
         # Args:
         # content: Contenido inicial opcional para el editor.
@@ -1865,7 +1865,7 @@ class MainWindow(tk.Tk):
         #
         # Pide el nombre del archivo (con un nombre sugerido único) y lo
         # crea en el directorio del proyecto, registrándolo en la lista de
-        # archivos del proyecto (.cmj).
+        # archivos del proyecto (.qbo).
         #
         # Returns:
         # CodeEditor: El editor con el archivo creado, o None si el
@@ -1933,7 +1933,7 @@ class MainWindow(tk.Tk):
         self.notebook.tab(editor, text=os.path.basename(file_path))
         self.update_title()
 
-        # Registrar el archivo en el proyecto (lista .cmj).
+        # Registrar el archivo en el proyecto (lista .qbo).
         self._register_file_in_project(file_path, notify=True)
         return editor
 
@@ -1959,7 +1959,7 @@ class MainWindow(tk.Tk):
         #
         # Si el archivo pertenece al directorio del proyecto abierto y no
         # figura en su lista de archivos, lo agrega (reescanea el directorio
-        # y guarda el .cmj).
+        # y guarda el .qbo).
         #
         # Args:
         # file_path: Ruta del archivo creado o guardado.
@@ -2007,12 +2007,12 @@ class MainWindow(tk.Tk):
                 ("Archivos C++", "*.cpp *.cc *.cxx *.hpp *.h *.cxx"),
                 ("Archivos C", "*.c"),
                 ("Archivos de cabecera", "*.h *.hpp"),
-                ("Proyectos", "*.cmj"),
+                ("Proyectos DevQbo", "*.qbo"),
                 ("Todos los archivos", "*.*"),
             ],
         )
         if file_path:
-            if file_path.endswith(".cmj"):
+            if file_path.endswith(".qbo"):
                 self.project_manager.open_project(file_path)
                 self.file_explorer.open_directory(os.path.dirname(file_path))
                 self.file_explorer.update_project_display()
@@ -2987,7 +2987,7 @@ class MainWindow(tk.Tk):
             "• Depuración con GDB\n"
             "• Explorador de archivos\n"
             "• Archivos abiertos visibles\n"
-            "• Proyectos .cmj\n"
+            "• Proyectos .qbo\n"
             "• Creación de clases .h y .cpp\n"
             "• Temas claro y oscuro\n"
             "• Buscar y reemplazar\n"

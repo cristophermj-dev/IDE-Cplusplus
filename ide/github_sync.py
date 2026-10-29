@@ -320,7 +320,7 @@ class GitHubSync:
         content = (
             "# Sobres eliminados por DevQbo (auto-generado)\n"
             "build/\nbin/\nobj/\n*.o\n*.obj\n*.exe\n*.out\n*.class\n"
-            "*.pyc\n__pycache__/\n.vs/\n.idea/\n*.cmj.save\n"
+            "*.pyc\n__pycache__/\n.vs/\n.idea/\n*.qbo.save\n"
         )
         with open(gitignore, "w", encoding="utf-8") as f:
             f.write(content)

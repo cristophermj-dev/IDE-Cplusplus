@@ -1,5 +1,5 @@
 # Gestión de proyectos para DevQbo.
-# Los proyectos se guardan con extensión .cmj (C++ Make/Manage Project).
+# Los proyectos se guardan con extensión .qbo (DevQbo Project).
 #
 # Este módulo proporciona las clases Project y ProjectManager para
 # crear, abrir, guardar y gestionar proyectos del IDE, incluyendo
@@ -62,19 +62,19 @@ class Project:
         return project
 
     def save(self, file_path=None):
-        # Guarda el proyecto en un archivo .cmj.
+        # Guarda el proyecto en un archivo .qbo.
         #
         # Args:
-        # file_path: Ruta del archivo .cmj (opcional, usa el directorio del proyecto).
+        # file_path: Ruta del archivo .qbo (opcional, usa el directorio del proyecto).
         #
         # Returns:
         # str: Ruta del archivo guardado.
         # Si no se especifica ruta, usar el directorio del proyecto
         if file_path is None:
-            file_path = os.path.join(self.path, f"{self.name}.cmj")
-        # Asegurar la extensión .cmj
-        if not file_path.endswith(".cmj"):
-            file_path += ".cmj"
+            file_path = os.path.join(self.path, f"{self.name}.qbo")
+        # Asegurar la extensión .qbo
+        if not file_path.endswith(".qbo"):
+            file_path += ".qbo"
 
         # Escribir el proyecto como JSON
         with open(file_path, "w", encoding="utf-8") as f:
@@ -83,10 +83,10 @@ class Project:
 
     @classmethod
     def load(cls, file_path):
-        # Carga un proyecto desde un archivo .cmj.
+        # Carga un proyecto desde un archivo .qbo.
         #
         # Args:
-        # file_path: Ruta del archivo .cmj.
+        # file_path: Ruta del archivo .qbo.
         #
         # Returns:
         # Project: Instancia de Project cargada desde el archivo.
@@ -100,7 +100,7 @@ class Project:
         #
         # Busca archivos de código fuente C++ (.cpp, .cc, .cxx, .c),
         # archivos de cabecera (.h, .hpp, .hh) y archivos de proyecto
-        # (.cmj), omitiendo directorios ocultos y de build.
+        # (.qbo), omitiendo directorios ocultos y de build.
         #
         # Returns:
         # list: Lista de rutas de archivos encontrados.
@@ -116,7 +116,7 @@ class Project:
                 if filename.startswith("."):
                     continue
                 ext = os.path.splitext(filename)[1].lower()
-                if ext in (".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hh", ".cmj"):
+                if ext in (".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hh", ".qbo"):
                     full_path = os.path.join(root, filename)
                     files.append(full_path)
 
@@ -133,7 +133,7 @@ class ProjectManager:
     def __init__(self):
         # Inicializa el gestor de proyectos.
         self.current_project = None  # Proyecto actualmente abierto
-        self.project_file = None     # Ruta del archivo .cmj del proyecto
+        self.project_file = None     # Ruta del archivo .qbo del proyecto
 
     def create_project(self, name, directory):
         # Crea un nuevo proyecto.
@@ -180,12 +180,12 @@ class ProjectManager:
         # Abre un proyecto existente.
         #
         # Args:
-        # file_path: Ruta del archivo .cmj del proyecto.
+        # file_path: Ruta del archivo .qbo del proyecto.
         #
         # Returns:
         # Project: El proyecto abierto.
         project = Project.load(file_path)
-        # Si la ruta guardada no existe, usar el directorio del archivo .cmj
+        # Si la ruta guardada no existe, usar el directorio del archivo .qbo
         if not os.path.isdir(project.path):
             project.path = os.path.dirname(os.path.abspath(file_path))
         project.scan_files()
