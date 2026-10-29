@@ -36,6 +36,14 @@ except ImportError:
     REPORTLAB_AVAILABLE = False
 
 
+def _parse_int(value, default=0):
+    # Convierte un valor a entero tolerando números con decimales ("9.0").
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
 # ============================================================
 # Fuente bitmap 8x8 (dominio público, font8x8_basic) para el exportador
 # de PNG sin Pillow. Cada glifo son 8 bytes (filas), bit 0 = columna derecha.
@@ -437,10 +445,10 @@ class UMLClass:
         # Convierte la clase a XML.
         elem = ET.Element("class")
         elem.set("name", self.name)
-        elem.set("x", str(self.x))
-        elem.set("y", str(self.y))
-        elem.set("width", str(self.width))
-        elem.set("height", str(self.height))
+        elem.set("x", str(int(round(self.x))))
+        elem.set("y", str(int(round(self.y))))
+        elem.set("width", str(int(round(self.width))))
+        elem.set("height", str(int(round(self.height))))
         elem.set("color", self.color)
         elem.set("text_color", self.text_color)
         elem.set("interface", str(self.is_interface).lower())
@@ -461,10 +469,10 @@ class UMLClass:
         # Crea una clase desde XML.
         cls_obj = cls(
             name=elem.get("name", "Clase"),
-            x=int(elem.get("x", 50)),
-            y=int(elem.get("y", 50)),
-            width=int(elem.get("width", 180)),
-            height=int(elem.get("height", 120)),
+            x=_parse_int(elem.get("x"), 50),
+            y=_parse_int(elem.get("y"), 50),
+            width=_parse_int(elem.get("width"), 180),
+            height=_parse_int(elem.get("height"), 120),
             color=elem.get("color", "#E8F0FE"),
             text_color=elem.get("text_color", "#000000"),
         )
@@ -527,8 +535,8 @@ class UMLRelation:
     def from_xml(cls, elem):
         # Crea una relación desde XML.
         return cls(
-            source_id=int(elem.get("source", 0)),
-            target_id=int(elem.get("target", 0)),
+            source_id=_parse_int(elem.get("source"), 0),
+            target_id=_parse_int(elem.get("target"), 0),
             rel_type=elem.get("type", cls.ASSOCIATION),
             label=elem.get("label", ""),
             source_multiplicity=elem.get("source_multiplicity", ""),
@@ -2164,7 +2172,7 @@ class UMLEditor(tk.Frame):
             classes_elem = root.find("classes")
             if classes_elem is not None:
                 for class_elem in classes_elem.findall("class"):
-                    class_id = int(class_elem.get("id", self.next_class_id))
+                    class_id = _parse_int(class_elem.get("id"), self.next_class_id)
                     uml_class = UMLClass.from_xml(class_elem)
                     self.classes[class_id] = uml_class
                     self.next_class_id = max(self.next_class_id, class_id + 1)
